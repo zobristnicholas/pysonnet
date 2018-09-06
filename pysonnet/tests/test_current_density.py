@@ -109,6 +109,13 @@ def test_current_density(current_density):
             1094.6446591536262)
 
 
+def test_trim_data(current_density):
+    current_density.trim_data(40, 140, 140, 160)
+    assert current_density.x_position.shape == (200,)
+    assert current_density.y_position.shape == (400,)
+    assert current_density.current_density().shape == (400, 200)
+
+
 def test_plot_current(current_density):
     current_density.plot_current(block=False)
     current_density.plot_current(power=-100, impedance=45, scale=2, block=False)

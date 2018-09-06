@@ -174,7 +174,7 @@ class CurrentDensity:
     def x_position(self):
         """Vector of x positions corresponding to the data rows."""
         self._check_data_loaded()
-        return self._data[0, 1:-1]
+        return self._data[0, 1:]
 
     @property
     def y_position(self):
@@ -192,7 +192,7 @@ class CurrentDensity:
                           is not used if power is None."""
         self._check_data_loaded()
         if power is None:
-            return self._data[1:, 1:-1]
+            return self._data[1:, 1:]
 
         # calculate the rms power used for the simulation
         voltages = []
@@ -204,7 +204,44 @@ class CurrentDensity:
         # convert dBm to Watts
         power = 1e-3 * 10**(power / 10)
 
-        return self._data[1:, 1:-1] * np.sqrt(power / power_data)
+        return self._data[1:, 1:] * np.sqrt(power / power_data)
+
+    def trim_data(self, x_min=None, x_max=None, y_min=None, y_max=None):
+        """Removes data outside of the bounds specified by x_min, x_max, y_min, and y_max.
+        The bounds are inclusive.
+        :param x_min: float for the minimum x value
+        :param x_max: float for the maximum x value
+        :param y_min: float for the minimum y value
+        :param y_max: float for the maximum y value
+        """
+        if x_min is None and x_max is None and y_min is None and y_max is None:
+            raise ValueError("one of x_min, x_max, y_min, or y_max must be specified")
+        self._check_data_loaded()
+
+        if x_min is None:
+            x_min = -np.inf
+        if x_max is None:
+            x_max = np.inf
+        if y_min is None:
+            y_min = -np.inf
+        if y_max is None:
+            y_max = np.inf
+
+        x = self.x_position
+        y = self.y_position
+        current_density = self.current_density()
+        logic_x = np.logical_and(x >= x_min, x <= x_max)
+        logic_y = np.logical_and(y >= y_min, y <= y_max)
+
+        x = x[logic_x]
+        y = y[logic_y]
+        y = np.append(np.nan, y).reshape(y.size + 1, 1)
+        current_density = current_density[logic_y, :][:, logic_x]
+
+        data = np.vstack([x, current_density])
+        data = np.hstack([y, data])
+        self._data = data
+
 
     def plot_current(self, axis=None, power=None, impedance=50, scale=1, block=False):
         """Plots a density map of the current.
@@ -274,4 +311,5 @@ class CurrentDensity:
         self._data = np.genfromtxt(self.file_name, delimiter=',',
                                    skip_header=self._header_lines,
                                    missing_values=["", "X Position ->"])
+        self._data = self._data[:, :-1]
         self._data_loaded = True
