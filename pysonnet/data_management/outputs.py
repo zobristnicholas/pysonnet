@@ -242,7 +242,6 @@ class CurrentDensity:
         data = np.hstack([y, data])
         self._data = data
 
-
     def plot_current(self, axis=None, power=None, impedance=50, scale=1, block=False):
         """Plots a density map of the current.
         :param axis: An axis object on which to plot. If none is given, a new figure will
@@ -260,7 +259,13 @@ class CurrentDensity:
         """
         if axis is None:
             _, axis = plt.subplots()
-        x, y = np.meshgrid(self.x_position, self.y_position)
+        sx = np.sign(self.x_position[-1] - self.x_position[-2])
+        sy = np.sign(self.y_position[-1] - self.y_position[-2])
+        x_position = np.concatenate([self.x_position - self.dx / 2 * sx,
+                                     np.array([self.x_position[-1] + self.dx / 2 * sx])])
+        y_position = np.concatenate([self.y_position - self.dy / 2 * sy,
+                                     np.array([self.y_position[-1] + self.dy / 2 * sy])])
+        x, y = np.meshgrid(x_position, y_position)
         mappable = axis.pcolormesh(x, y, self.current_density(power=power,
                                                               impedance=impedance),
                                    norm=colors.PowerNorm(scale))
