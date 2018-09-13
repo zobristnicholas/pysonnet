@@ -278,7 +278,6 @@ class CurrentDensity:
         r = -int(np.floor(np.log10(ticks[1]))) + 1
         ticks = np.round(ticks, r)
         if ticks[-1] > max_current:
-            print(ticks[-1], max_current, 10**-r)
             ticks[-1] = np.round(max_current - 10**-r, r)
         color_bar = plt.colorbar(mappable, ax=axis, ticks=ticks)
         color_bar.set_label("current [{}]".format(self.current_unit_string),
