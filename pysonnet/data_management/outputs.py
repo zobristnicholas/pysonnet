@@ -3,6 +3,7 @@ import copy
 import numpy as np
 from matplotlib import colors
 from matplotlib import pyplot as plt
+from scipy.interpolate import interp2d
 
 
 class CurrentDensity:
@@ -205,6 +206,18 @@ class CurrentDensity:
         power = 1e-3 * 10**(power / 10)
 
         return self._data[1:, 1:] * np.sqrt(power / power_data)
+
+    def current_density_function(self, power=None, impedance=50, **kwargs):
+        """Returns a scipy interp2d function over the current density
+        :param power: Power in dBm input into the input port. Uses the impedance parameter
+                      to find the voltage. May not make sense if more than one port has a
+                      nonzero input. Defaults to None and the input voltage in the file
+                      is used.
+        :param impedance: Impedance in ohms of the input port. It defaults to 50 ohms and
+                          is not used if power is None.
+        :param kwargs: kwargs to pass to interp2d"""
+        z = self.current_density(power=power, impedance=impedance)
+        return interp2d(self.x_position, self.y_position, z, **kwargs)
 
     def trim_data(self, x_min=None, x_max=None, y_min=None, y_max=None):
         """Removes data outside of the bounds specified by x_min, x_max, y_min, and y_max.
