@@ -2,7 +2,7 @@ import os
 import pytest
 import numpy as np
 from matplotlib import pyplot
-from pysonnet.data_management import outputs
+from pysonnet import outputs
 
 
 @pytest.fixture
