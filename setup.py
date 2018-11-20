@@ -4,10 +4,10 @@ from setuptools import setup, find_packages
 
 setup(name='pysonnet',
       version='0.0.0',
-      description='Python tools for working with Sonnet E&M data',
+      description='Python tools for working with Sonnet E&M',
       url='http://github.com/zobristnicholas/pysonnet',
       author='Nicholas Zobrist',
       license='GNU GPLv3',
       packages=find_packages(),
-      install_requires=['scipy', 'numpy', 'matplotlib', 'pytest'],
+      install_requires=['scipy', 'numpy', 'matplotlib', 'pytest', 'pyyaml', 'psutil'],
       zip_safe=False)
