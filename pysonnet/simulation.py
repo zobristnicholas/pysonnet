@@ -94,6 +94,7 @@ class Configuration(dict):
 class Project(abc.ABC):
     """
     Abstract base class for the Geometry and Netlist Projects. It can not be instantiated.
+
     :param config_path: path to the configuration file for this project (optional)
     """
     def __init__(self, config_path=None):
@@ -105,7 +106,8 @@ class Project(abc.ABC):
     @abc.abstractmethod
     def make_sonnet_file(self, file_path):
         """
-        Convert this project into a Sonnet file.
+        Convert the current state of this project into a Sonnet file.
+
         :param file_path: path where the file will be saved.
         """
         pass
@@ -114,6 +116,7 @@ class Project(abc.ABC):
     def save(self, config_path):
         """
         Save the settings for this project into a yaml file.
+
         :param config_path: path where the settings will be saved.
         """
         pass
@@ -122,28 +125,36 @@ class Project(abc.ABC):
     def load(self, config_path):
         """
         Load the settings for this project from a yaml file.
+
         :param config_path: path where the settings will be saved.
         """
         pass
 
-    def run(self, file_path=None):
+    def run(self, file_path=None, options='-v', external_frequency_file=None):
         """
         Run the project simulation.
-        :param file_path: path where the Sonnet file will be saved (optional if already
-                          made)
+
+        :param file_path: path where the Sonnet file will be saved (optional)
+            This parameter is optional if a Sonnet file has already been made and is
+            consistent with the current project state.
+        :param options: extra command line options to pass to Sonnet em
+            Valid options are given on page 414 of the sonnet_users_guide.pdf. Verbose
+            is turned on by default and the output is sent to the program log.
+        :param external_frequency_file: path to the frequency control file (optional)
         """
+        # check to make sure there is a project file to run
         if file_path is not None:
             self.make_sonnet_file(file_path)
         if self.project_file_path is None:
             message = ("run make_sonnet_file() or provide the 'file_path' argument "
                        "before running the simulation")
             raise ValueError(message)
-        options = ''  # options not implemented
-        external_frequency_file = ''  # external_frequency_file not implemented
-
-        command = [os.path.join(self.cfg["sonnet_path"], "bin", "em ") , options ,
-                   self.project_file_path , external_frequency_file]
-        command = [element for element in command if element != '']
+        # collect the command to run
+        command = [os.path.join(self.cfg["sonnet_path"], "bin", "em "), options,
+                   self.project_file_path, external_frequency_file]
+        command = [element for element in command
+                   if (element != '' and element != '-' and element is not None)]
+        # run the command
         with psutil.Popen(command, stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE) as process:
             while True:
