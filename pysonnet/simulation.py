@@ -140,10 +140,18 @@ class Project(abc.ABC):
             raise ValueError(message)
         options = ''  # options not implemented
         external_frequency_file = ''  # external_frequency_file not implemented
-        command = (os.path.join(self.cfg["sonnet_path"], "bin", "em ") + options +
-                   self.project_file_path + external_frequency_file)
-        with psutil.Popen(command, stdout=subprocess.PIPE) as process:
-            log.info(process.stdout.read())
+
+        command = [os.path.join(self.cfg["sonnet_path"], "bin", "em ") , options ,
+                   self.project_file_path , external_frequency_file]
+        command = [element for element in command if element != '']
+        with psutil.Popen(command, stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE) as process:
+            while True:
+                output = process.stdout.readline()
+                if output == '' and process.poll() is not None:
+                    break
+                if output:
+                    log.info(output.strip())
 
 
 class GeometryProject(Project):
