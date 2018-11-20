@@ -6,11 +6,16 @@ from matplotlib import pyplot as plt
 from scipy.interpolate import interp2d
 
 
+class Sweep:
+    """Class for handling sweep data output from Sonnet"""
+    pass
+
+
 class CurrentDensity:
-    """Class for handling the current density output from sonnet."""
+    """Class for handling the current density output from Sonnet."""
     def __init__(self, file_name=None, load_on_init=False):
         """
-        :param file_name: .csv file name for the sonnet current density output
+        :param file_name: .csv file name for the Sonnet current density output
         :param load_on_init: load data on object creation (True) or defer (False)
         """
         # check the inputs
@@ -40,7 +45,7 @@ class CurrentDensity:
 
     @property
     def sonnet_file_path(self):
-        """Path to the sonnet file used to generate the current density."""
+        """Path to the Sonnet file used to generate the current density."""
         self._check_header_loaded()
         return self._header[0][2]
 
