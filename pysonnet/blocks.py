@@ -9,7 +9,7 @@ VER {version}"""
 
 HEADER = """\
 HEADER
-LIC {licence_id}
+LIC {license_id}
 DAT {date}
 BUILT_BY_CREATED unknown "unknown version" {date}
 BUILT_BY_SAVED unknown "unknown version"
@@ -24,9 +24,10 @@ FREQ {frequency_unit}
 RSVY {resistivity_unit}
 SRES {sheet_resistance_unit}
 IND {inductance_unit}
-LEN {length_unit}
+LNG {length_unit}
 ANG {angle_unit}
 CON {conductance_unit}
+CAP {capacitance_unit}
 RES {resistance_unit}
 END DIM
 """
@@ -43,15 +44,15 @@ SNPANG {angle}
 {dielectrics}
 {variables}
 {parameters}
-BOX {n_metal_lev} {box_width_x} {box_width_y} {x_cells2} {y_cells2} 20 0
+BOX {n_metal_levels} {box_width_x} {box_width_y} {x_cells2} {y_cells2} 20 0
 {layers}
 {variable_cells}
 {technology_layers}
 {edge_vias}
-LORGN {origin}
+{origin}
 {ports}
 {calibration_group}
-{component}
+{components}
 NUM {n_polygons}
 {polygons}
 END GEO
@@ -76,8 +77,8 @@ SPEED {speed}
 {abs_resolution}
 CACHE_ABS {caching_level}
 TARG_ABS {abs_target_number}
-Q_ACC {q_accuracy_on}
-DET_ABS_RES {resonance_detection_on}
+Q_ACC {q_accuracy}
+DET_ABS_RES {resonance_detection}
 {hierarchy_sweep}
 END CONTROL
 """
@@ -151,5 +152,31 @@ END SMDFILES
 
 TRANSLATORS = """\
 TRANSLATOR
+{translators}
 END TRANSLATOR
 """
+
+TRANSLATOR_FORMAT = """\
+{translator_type}
+{separate_object_layer}
+{separate_material_layer}
+{divide_vias}
+{circle_vias}
+{circle_type}
+{circle_size}
+{keep_metals}
+{keep_vias}
+{keep_via_pads}
+{keep_bricks}
+{keep_parent}
+{keep_edge_vias}
+{convert_parent}
+{convert_metal_to_edge_via}
+{n_gbr_whole_digits}
+{n_gbr_decimal_digits}
+{gbr_filename_prefix}
+{gbr_filename_extension}
+{gbr_filename_type}
+{gbr_job_filename_type}
+{gbr_job_prefix}
+{gbr_units}"""
