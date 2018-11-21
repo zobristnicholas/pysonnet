@@ -1,3 +1,6 @@
+# user generated configuration files
+user*.yaml
+
 # Byte-compiled / optimized / DLL files
 *__pycache__/
 *.py[cod]

@@ -9,5 +9,6 @@ setup(name='pysonnet',
       author='Nicholas Zobrist',
       license='GNU GPLv3',
       packages=find_packages(),
-      install_requires=['scipy', 'numpy', 'matplotlib', 'pytest', 'pyyaml', 'psutil'],
+      install_requires=['scipy', 'numpy', 'matplotlib', 'pytest', 'pyyaml',
+                        'psutil'],
       zip_safe=False)
