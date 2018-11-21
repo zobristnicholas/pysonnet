@@ -1,0 +1,91 @@
+sonnet:
+  sonnet_path: ''
+  version: ''
+  license_id: ''
+  date: ''
+dimensions:
+  conductivity_unit: 'SM'
+  frequency_unit: 'GHZ'
+  resistivity_unit: 'OHCM'
+  sheet_resistance_unit: 'OHSQ'
+  inductance_unit: 'NH'
+  length_unit: 'Mil'
+  angle_unit: 'Deg'
+  conductance_unit: '/OH'
+  capacitance_unit: 'PF'
+  resistance_unit: 'OH'
+geometry:
+  symmetry: ''
+  auto_height_vias: ''
+  angle: 45
+  parallel_subsections: ''
+  reference_planes: ''
+  metals: "TMET Lossless 0 SUP 0 0 0 0 \nBMET Lossless 0 SUP 0 0 0 0"
+  dimensions: ''
+  dielectrics: ''
+  variables: ''
+  parameters: ''
+  n_metal_levels: 1
+  box_width_x: 160
+  box_width_y: 160
+  x_cells2: 32
+  y_cells2: 32
+  layers: "0 1 1 0 0 0 0 Unnamed \n0 1 1 0 0 0 0 Unnamed"
+  variable_cells: ''
+  technology_layers: ''
+  edge_vias: ''
+  origin: ''
+  ports: ''
+  calibration_group: ''
+  components: ''
+  n_polygons: 0
+  polygons: ''
+frequency:
+  sweeps: ''
+control:
+  sweep_type: ''
+  optimize: ''
+  options: ''
+  subsections_per_wavelength: 20
+  edge_checking: ''
+  subsectioning_frequency: ''
+  estimated_epsilon: ''
+  speed: 0
+  abs_resolution: ''
+  caching_level: 1
+  abs_target_number: 300
+  q_accuracy: 'N'
+  resonance_detection: 'N'
+  hierarchy_sweep: ''
+optimization:
+    n_max_optimize_iterations: 300
+    optimization_parameters: ''
+    optimization_goals: ''
+parameter_sweep:
+  parameter_sweep: ''
+output_file:
+  response_data: ''
+  pi_spice: ''
+  n_coupled_line_spice: ''
+  broadband_spice: ''
+  inductor_model: ''
+  output_directory: '.'
+parameter_netlist:
+  parameters: ''
+circuit:
+  circuit_elements: ''
+subdivider:
+  netlist_name: '$BASENAME_net.son'
+  reference_planes: ''
+  geometry_names: ''
+  subdivider_locations: ''
+quick_start_guide:
+  imported: 'NO'
+  units_changed: 'NO'
+  aligned_to_grid: 'NO'
+  reference_planes: 'NO'
+  metals_defined: 'NO'
+component_data_files:
+  data_files: ''
+translators:
+  translators: ''
