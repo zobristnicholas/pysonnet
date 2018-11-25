@@ -1,12 +1,15 @@
+# geometry project file identifier
 GEOMETRY_PROJECT = """\
 FTYP SONPROJ 15 ! Sonnet Project File
 VER {version}
 """
 
+# netlist project file identifier
 NETLIST_PROJECT = """\
 FTYP SONNETPROJ 15 ! Sonnet Netlist Project File
 VER {version}"""
 
+# header block
 HEADER = """\
 HEADER
 LIC {license_id}
@@ -17,6 +20,7 @@ ANN Created by pysonnet
 END HEADER
 """
 
+# dimensions block
 DIMENSIONS = """\
 DIM
 CDVY {conductivity_unit}
@@ -32,6 +36,7 @@ RES {resistance_unit}
 END DIM
 """
 
+# geometry block for geometry project
 GEOMETRY = """\
 GEO
 {symmetry}
@@ -58,16 +63,26 @@ NUM {n_polygons}
 END GEO
 """
 
+# frequency block
 FREQUENCY = """\
 FREQ
 {sweeps}
 END FREQ
 """
+SWEEP_FORMAT = "SWEEP {f1} {f2} {f_step}"
+LSWEEP_FORMAT = "LSWEEP {f1} {f2} {n_points}"
+ESWEEP_FORMAT = "ESWEEP {f1} {f2} {n_points}"
+STEP_FORMAT = "STEP {f1}"
+LIST_FORMAT = "LIST {frequency_list}"
+DC_FORMAT = "DC_FREQ {f_calc} {frequency}"
+ABS_FORMAT = "ABS_ENTRY {f1} {f2}"
+ABS_MIN_FORMAT = "ABS_FMIN NET= {s_parameter} {f1} {f2}"
+ABS_MAX_FORMAT = "ABS_FMAX NET= {s_parameter} {f1} {f2}"
 
+# control block
 CONTROL = """\
 CONTROL
 {sweep_type}
-{optimize}
 OPTIONS  {options}
 SUBSPLAM Y {subsections_per_wavelength}
 {edge_checking}
@@ -83,6 +98,7 @@ DET_ABS_RES {resonance_detection}
 END CONTROL
 """
 
+# optimization block
 OPTIMIZATION = """\
 OPT
 MAX {n_max_optimize_iterations}
@@ -93,12 +109,14 @@ END
 END OPT
 """
 
+# parameter sweep block
 PARAMETER_SWEEP = """\
 VARSWP
 {parameter_sweep}
 END VARSWP
 """
 
+# output file block
 OUTPUT_FILE = """
 FILEOUT
 {response_data}
@@ -110,18 +128,21 @@ FOLDER {output_directory}
 END FILEOUT
 """
 
+# parameter block for netlist project
 PARAMETER_NETLIST = """\
 VAR
 {parameters}
 END VAR
 """
 
+# circuit block for netlist project
 CIRCUIT = """\
 CKT
 {circuit_elements}
 END CKT
 """
 
+# subdivider block for geometry project
 SUBDIVIDER = """\
 SUBDIV
 MAIN {netlist_name}
@@ -130,7 +151,9 @@ MAIN {netlist_name}
 {subdivider_locations}
 END SUBDIV
 """
+REFERENCE_PLANES_FORMAT = "DRP1 {position} {type} {length}"
 
+# quick start guide block for a geometry project
 QUICK_START_GUIDE = """\
 QSG
 IMPORT {imported}
@@ -144,18 +167,19 @@ USED YES
 END QSG
 """
 
+# component data files block
 COMPONENT_DATA_FILES = """\
 SMDFILES
 {data_files}
 END SMDFILES
 """
 
+# translator block
 TRANSLATORS = """\
 TRANSLATOR
 {translators}
 END TRANSLATOR
 """
-
 TRANSLATOR_FORMAT = """\
 {translator_type}
 {separate_object_layer}
