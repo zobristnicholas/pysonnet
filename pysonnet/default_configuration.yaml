@@ -68,7 +68,7 @@ output_file:
   n_coupled_line_spice: ''
   broadband_spice: ''
   inductor_model: ''
-  output_directory: '.'
+  output_folder: '.'
 parameter_netlist:
   parameters: ''
 circuit:

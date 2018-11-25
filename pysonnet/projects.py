@@ -11,6 +11,14 @@ log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
 
+def add_line(string, addition):
+    """Append to string adding new line if empty."""
+    if string:
+        string.append(os.linesep + addition)
+    else:
+        string.append(addition)
+
+
 class Project(dict):
     """
     Abstract base class for the Geometry and Netlist Projects. It should not be
@@ -33,6 +41,12 @@ class Project(dict):
             if not os.path.isfile(load_path):
                 load_path = os.path.join(directory, 'default_configuration.yaml')
             self.load(load_path)
+
+        # initialize internal boolean indicating if ports have been made
+        if self['geometry']['ports']:
+            self._has_ports = True
+        else:
+            self._has_ports = False
 
     def make_sonnet_file(self, file_path):
         """
@@ -240,10 +254,7 @@ class Project(dict):
                        "or 'abs_max'")
             raise ValueError(message)
         # add the sweep to the project
-        if self['frequency']['sweeps']:
-            self['frequency']['sweeps'].append(os.linesep + sweep)
-        else:
-            self['frequency']['sweeps'].append(sweep)
+        add_line(self['frequency']['sweeps'], sweep)
 
     def clear_frequency_sweeps(self):
         """Removes all added frequency sweeps from the project."""
@@ -265,10 +276,6 @@ class Project(dict):
         """Removes all added optimizations from the project."""
         self['optimization']['optimization_parameters'] = ''
         self['optimization']['optimization_goals'] = ''
-
-    def add_output_file(self):
-        """Add an output file for the result of the analysis for the project."""
-        raise NotImplementedError
 
 
 class GeometryProject(Project):
@@ -329,10 +336,7 @@ class GeometryProject(Project):
         else:
             raise NotImplementedError
         # add the reference plane to the geometry
-        if self['geometry']['reference_planes']:
-            self['geometry']['reference_planes'].append(os.linesep + plane)
-        else:
-            self['geometry']['reference_planes'].append(plane)
+        add_line(self['geometry']['reference_planes'], plane)
 
     def define_metal(self):
         """Defines a metal that can be used in the project."""
@@ -398,6 +402,74 @@ class GeometryProject(Project):
     def add_polygons(self):
         """Adds polygons to the project."""
         raise NotImplementedError
+
+    def add_output_file(self, file_type, output_folder=None, deembed=True,
+                        include_abs=True, include_comments=True, high_precision=True,
+                        file_name=None, parameter_type='S', parameter_form='RI'):
+        """
+        Add an output file for the response data from the analysis of the project.
+
+        :param file_type: output file type (str)
+            Valid options are 'touchstone', 'touchstone2', 'databank', 'scompact',
+            'spreadsheet'/'csv', 'cadance', 'mdif_s2p'/'mdif', and 'mdif_ebridge'.
+        :param output_folder: relative path to where the data is saved (str)
+            If no folder is chosen, data will be saved in the top level of the project
+            directory. This option can only be set once per Project, and it's value is
+            overwritten if selected again.
+        :param deembed: save the deembeded data, defaults to True (boolean)
+        :param include_abs: include the abs calculated data, defaults to True (boolean)
+        :param include_comments: include comments in the file, defaults to True (boolean)
+        :param high_precision: use high precision numbers, defaults to True (boolean)
+        :param file_name: output data file name, defaults to the sonnet file name (str)
+        :param parameter_type: type of parameter to output (str)
+            Valid options are 'S' for the scattering parameters, 'Y' for the Y-parameters,
+            and 'Z' for the Z-parameters.
+        :param parameter_form: form of the output parameters (str)
+            Valid options are 'MA' for magnitude-angle, 'DB' for dB-angle, and 'RI' for
+            real-imaginary.
+        """
+        # check inputs
+        file_types = {'touchstone': 'TS', 'TS': 'TS',
+                      'touchstone2': 'TOUCH2', 'TOUCH2': 'TOUCH2',
+                      'databank': 'DATA_BANK', 'DATA_BANK': 'DATA_BANK',
+                      'scompact': 'SC', 'SC': 'SC',
+                      'spreadsheet': 'CSV', 'csv': 'CSV', 'CSV': 'CSV',
+                      'cadance': 'CADANCE', 'CADANCE': 'CADANCE',
+                      'mdif_s2p': 'MDIF', 'mdif': 'MDIF', 'MDIF': 'MDIF',
+                      'mdif_ebridge': 'EBMDIF', 'EBMDIF': 'EBMDIF'}
+        message = "'file_type' parameter must be in {}".format(list(file_types.keys()))
+        assert file_type in file_types.keys(), message
+        message = "'parameter_type' parameter must be in {}".format(['S', 'Y', 'Z'])
+        assert parameter_type in ['S', 'Y', 'Z'], message
+        message = "'parameter_form' parameter must be in {}".format(['RI', 'MA', 'DB'])
+        assert parameter_form in ['RI', 'MA', 'DB'], message
+        # parse options
+        deembed = 'D' if deembed else 'ND'
+        include_abs = 'Y' if include_abs else 'N'
+        include_comments = 'IC' if include_comments else 'NC'
+        precision = 15 if high_precision else 8
+        if file_name is None:
+            file_name = '$BASENAME'
+        # create ports string (defer if ports have not been made)
+        if self._has_ports:
+            raise NotImplementedError
+        else:
+            ports = "{ports}"
+        # set the output folder if it was specified
+        if output_folder is not None:
+            self['output_file']['output_folder'] = output_folder
+        # create output string
+        output = b.RESPONSE_DATA_FORMAT.format(file_type=file_type,
+                                               deembed=deembed,
+                                               include_abs=include_abs,
+                                               file_name=file_name,
+                                               include_comments=include_comments,
+                                               precision=precision,
+                                               parameter_type=parameter_type,
+                                               parameter_form=parameter_form,
+                                               ports=ports)
+        # add the output file to the project
+        add_line(self['output_file']['response_data'], output)
 
 
 class NetlistProject(Project):

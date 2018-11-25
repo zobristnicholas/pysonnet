@@ -124,10 +124,15 @@ FILEOUT
 {n_coupled_line_spice}
 {broadband_spice}
 {inductor_model}
-FOLDER {output_directory}
+FOLDER {output_folder}
 END FILEOUT
 """
-
+RESPONSE_DATA_FORMAT = ("{file_type} {deembed} {include_abs} {filename} "
+                        "{include_comments} {precision} {parameter_type} "
+                        "{parameter_form} {ports}")
+RESPONSE_DATA_NETLIST_FORMAT = ("{file_type} NET={network} {deembed} {include_abs} "
+                                "{file_name} {include_comments} {precision} "
+                                "{parameter_type} {parameter_form} {ports}")
 # parameter block for netlist project
 PARAMETER_NETLIST = """\
 VAR
