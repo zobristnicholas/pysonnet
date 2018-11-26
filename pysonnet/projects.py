@@ -160,22 +160,22 @@ class Project(dict):
         :param sweep_type: sweep type to add to the project (str)
             Valid options are listed below with the additional arguments that can be used
             for each. Refer to the Sonnet documentation for details on the sweep types.
-            linear:
+            'linear':
                 f1, f2, and (n_points or f_step)
-            exponential:
+            'exponential':
                 f1, f2, and n_points
-            single:
+            'single':
                 f1
-            list:
+            'list':
                 frequency_list
-            dc:
+            'dc':
                 f1 (optional in units of kHz), if not specified a value is calculated for
                 you by Sonnet
-            abs:
+            'abs':
                 f1 and f2
-            abs_min:
+            'abs min':
                 s_parameter, f1, and f2
-            abs_max:
+            'abs max':
                 s_parameter, f1 and f2
         :param f1: a frequency (float)
         :param f2: a frequency (float)
@@ -240,18 +240,18 @@ class Project(dict):
         elif sweep_type == 'abs':
             assert f1 is not None and f2 is not None, f1_f2_message
             sweep = b.ABS_FORMAT.format(f1=f1, f2=f2)
-        elif sweep_type == 'abs_min':
+        elif sweep_type == 'abs min':
             assert f1 is not None and f2 is not None, f1_f2_message
             assert s_parameter is not None, s_parameter_message
             sweep = b.ABS_MIN_FORMAT.format(s_parameter=s_parameter, f1=f1, f2=f2)
-        elif sweep_type == 'abs_max':
+        elif sweep_type == 'abs max':
             assert f1 is not None and f2 is not None, f1_f2_message
             assert s_parameter is not None, s_parameter_message
             sweep = b.ABS_MAX_FORMAT.format(s_parameter=s_parameter, f1=f1, f2=f2)
         else:
             message = ("'sweep_type' must be one of the following: 'linear', "
-                       "'exponential', 'single', 'list', 'dc', 'abs', 'abs_min', "
-                       "or 'abs_max'")
+                       "'exponential', 'single', 'list', 'dc', 'abs', 'abs min', "
+                       "or 'abs max'")
             raise ValueError(message)
         # add the sweep to the project
         add_line(self['frequency']['sweeps'], sweep)
