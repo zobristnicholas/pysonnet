@@ -220,7 +220,7 @@ class CurrentDensity:
                       is used.
         :param impedance: Impedance in ohms of the input port. It defaults to 50 ohms and
                           is not used if power is None.
-        :param kwargs: kwargs to pass to interp2d"""
+        :keyword **kwargs: keyword arguments to pass to interp2d"""
         z = self.current_density(power=power, impedance=impedance)
         return interp2d(self.x_position, self.y_position, z, **kwargs)
 
