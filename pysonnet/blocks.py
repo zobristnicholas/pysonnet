@@ -67,6 +67,7 @@ GENERAL_METAL_FORMAT = '{location} "{name}" {pattern_id} SUP {r_dc} {r_rf} {x_dc
 LAYER_FORMAT = ('{thickness} {xy_epsilon} {xy_mu} {xy_e_loss} {xy_m_loss} {xy_sigma} '
                 '{z_partitions} "{name}" {z_epsilon} {z_mu} {z_e_loss} {z_m_loss} '
                 '{z_sigma}')
+ORIGIN_FORMAT = "LORGN {dx} {dy} {locked}"
 
 # frequency block
 FREQUENCY = """\

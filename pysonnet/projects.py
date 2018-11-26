@@ -631,8 +631,8 @@ class GeometryProject(Project):
         self['x_cells2'] = 2 * int(x_cells)
         self['y_cells2'] = 2 * int(y_cells)
 
-    def choose_layers(self):
-        """Choose the dielectric layers to be used in the project."""
+    def define_dielectric_bricks(self):
+        """Defines a dielectric brick that can be used in the project."""
         raise NotImplementedError
 
     def define_technology_layer(self):
@@ -643,9 +643,18 @@ class GeometryProject(Project):
         """Adds an edge via to the project."""
         raise NotImplementedError
 
-    def set_origin(self):
-        """Sets the origin for the project."""
-        raise NotImplementedError
+    def set_origin(self, dx, dy, locked=True):
+        """
+        Sets the origin for the project.
+
+        :param dx: distance from the left edge (float)
+        :param dy: distance from the top edge (float)
+        :param locked: sets whether the origin location is locked (boolean)
+        """
+        locked_values = {True: 'L', False: 'U'}
+        # dy is backwards for some reason
+        origin = b.ORIGIN_FORMAT.format(dx=dx, dy=-dy, locked=locked_values[locked])
+        self['geometry']['origin'] = origin
 
     def add_port(self):
         """Adds a port to the project."""
