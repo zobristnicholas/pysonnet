@@ -9,49 +9,6 @@ from datetime import datetime
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
-units = {'conductivity': {'microsiemens/centimeter': 'USCM', 'uS/cm': 'USCM',
-                          'µS/cm': 'USCM',
-                          'millisiemens/centimeter': 'MSCM', 'mS/cm': 'MSCM',
-                          'siemens/meter': 'SM', 'S/m': 'SM',
-                          'siemens/centimeter': 'SCM', 'S/cm': 'SCM'},
-         'frequency': {"Hz": "HZ", "hertz": "HZ",
-                       "kHz": "KHZ", "kilohertz": "KHZ",
-                       "MHz": "MHZ", "megahertz": "MHZ",
-                       "GHz": "GHZ", "gigahertz": "GHZ",
-                       "THZ": "THZ", "terahertz": "THZ",
-                       "PHz": "PHZ", "petahertz": "PHZ"},
-         'resistivity': {"ohm centimeter": "OHCM", "ohm cm": "OHCM", "Ω cm": "OHCM",
-                         "ohm meter": "OHMM", "ohm m": "OHMM", "Ω m": "OHMM"},
-         'sheet_resistance': {"milliohm/square": "MOSQ", "mohm/sq": "MOSQ",
-                              "mΩ/sq": "MOSQ",
-                              "ohm/square": "OHSQ", "ohm/sq": "OHSQ", "Ω/sq": "OHSQ"},
-         'inductance': {"femtohenry": "FH", "fH": "FH",
-                        "picohenry": "PH", "pH": "PH",
-                        "nanohenry": "NH", "nH": "NH",
-                        "microhenry": "UH", "uH": "UH", "µH": "UH",
-                        "millihenry": "MH", "mH": "MH",
-                        "henry": "H", "H": "H"},
-         'length': {"micrometer": "UM", "um": "UM", "µm": "UM",
-                    "milliinch": "MIL", "min": "MIL", "mil": "MIL",
-                    "millimeter": "MM", "mm": "MM",
-                    "centimeter": "CM", "cm": "CM",
-                    "inch": "IN", "in": "IN",
-                    "foot": "FT", "ft": "FT",
-                    "meter": "M", "m": "M"},
-         'angle': {"degree": "DEG", "deg": "DEG"},
-         'conductance': {"1/ohm": "/OH", "1/Ω": "/OH"},
-         'capacitance': {"femtofarad": "FF", "fF": "FF",
-                         "picofarad": "PF", "pF": "PF",
-                         "nanofarad": "NF", "nF": "NF",
-                         "microfarad": "UF", "uF": "UF", "µF": "UF",
-                         "millifarad": "MF", "mf": "MF",
-                         "farad": "F", "F": "F"},
-         'resistance': {"milliohm": "WOH", "mohm": "WOH", "mΩ": "WOH",
-                        "ohm": "OH", "Ω": "OH",
-                        "kiloohm": "KOH", "kohm": "KOH", "kΩ": "KOH",
-                        "megaohm": "MOH", "Mohm": "MOH", "MΩ": "MOH",
-                        "gigaohm": "GOH", "Gohm": "GOH", "GΩ": "GOH",
-                        "teraohm": "TOH", "Tohm": "TOH", "TΩ": "TOH"}}
 
 
 def add_line(string, addition):
@@ -353,13 +310,13 @@ class Project(dict):
         # check inputs
         message = "'{}' is not in {}"
         for key in kwargs.keys():
-            assert key in units.keys(), \
-                message.format(key, list(units.keys()))
-            assert kwargs[key] in units[key].keys(), \
-                message.format(kwargs[key], list(units[key].keys()))
+            assert key in b.UNITS.keys(), \
+                message.format(key, list(b.UNITS.keys()))
+            assert kwargs[key] in b.UNITS[key].keys(), \
+                message.format(kwargs[key], list(b.UNITS[key].keys()))
         # add unit to the project
         for key, value in kwargs:
-            self['dimensions'][key] = units[key][value]
+            self['dimensions'][key] = b.UNITS[key][value]
 
 
 class GeometryProject(Project):
