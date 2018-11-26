@@ -338,9 +338,115 @@ class GeometryProject(Project):
         # add the reference plane to the geometry
         add_line(self['geometry']['reference_planes'], plane)
 
-    def define_metal(self):
-        """Defines a metal that can be used in the project."""
-        raise NotImplementedError
+    def define_metal(self, metal_type, name, top=False, bottom=False, **kwargs):
+        """
+        Defines a metal that can be used in the project and sets the top and bottom box
+        cover metals.
+
+        :param metal_type: type of metal to add to the project (string)
+            Valid types are listed below with any additional keyword arguments that may be
+            used with them. Where ambiguous, the parameters' units are determined by the
+            project level units.
+            'waveguide load': only for the top and bottom layers.
+            'free space': can only for the top and bottom layers.
+            'normal': cannot be used for vias
+            'resistor': cannot be used for vias
+            'native': cannot be used for vias
+            'general': cannot be used for vias
+                r_dc: DC resistance [(m)Ohms/sq], zero by default (float)
+                r_rf: skin effect coefficient [Ohms/sqrt(Hz)/sq], zero by default (float)
+                x_dc: DC reactance [(m)Ohms/sq], zero by default (float)
+                ls: surface inductance [pH/sq], zero by default (float)
+            'sense': cannot be used for vias
+            'thick metal': cannot be used for vias or the top and bottom layers
+            'rough metal': cannot be used for vias or the top and bottom layers
+            'volume loss': only for vias
+            'surface loss': only for vias
+            'array loss': only for vias
+        :param name: metal name that must be unique in the project (string)
+        :param top: determines if the metal is used for the top of the box (boolean)
+        :param bottom: determines if the metal is used for the bottom of the box (boolean)
+        """
+        cover_types = ['waveguide load', 'free space', 'normal', 'resistor',
+                       'native', 'general', 'sense']
+        metal_types = cover_types.append(['thick metal', 'rough metal', 'volume loss',
+                                          'surface loss', 'array loss'])
+        # determine if the method needs to be run twice to set both the top and bottom
+        if top and bottom:
+            run_again = True
+        else:
+            run_again = False
+        # check that valid types are given to top and bottom metals
+        if top or bottom:
+            cover_message = ("metals on the box top and bottom can only be of the "
+                             "following types: {}").format(cover_types)
+            assert metal_type in cover_types, cover_message
+        # determine the pattern id and set the location string
+        metals = self['geometry']['metals'].splitlines()
+        if top:
+            location = "TMET"
+            replace = True
+            pattern_id = 0
+        elif bottom:
+            location = "BMET"
+            replace = True
+            pattern_id = 0
+        else:
+            location = "MET"
+            replace = False
+            pattern_id = len(metals) - 2
+        # if the top or bottom metal are being replaced keep the metal in the metals list
+        if replace:
+            names = [metal.split()[1].strip('"') for metal in metals]
+            replace_metal = metals[0] if top else metals[1]
+            replace_name = replace_metal.split()[1].strip('"')
+            conditions = (replace_name not in names and replace_name != "Free Space" and
+                          replace_name != "Freespace" and replace_name != "WG Load")
+            if conditions:
+                replace_metal = replace_metal.split()
+                replace_metal[2] = len(metals) - 3
+                replace_metal = " ".join(replace_metal)
+                metals.append(replace_metal)
+        # add the new metal to the metals list
+        if metal_type == 'waveguide load':
+            raise NotImplementedError
+        elif metal_type == 'free space':
+            metal = b.FREESPACE_FORMAT(location=location)
+        elif metal_type == 'normal':
+            raise NotImplementedError
+        elif metal_type == 'resistor':
+            raise NotImplementedError
+        elif metal_type == 'native':
+            raise NotImplementedError
+        elif metal_type == 'general':
+            r_dc = kwargs.pop('r_dc', 0)
+            r_rf = kwargs.pop('r_rf', 0)
+            x_dc = kwargs.pop('x_dc', 0)
+            ls = kwargs.pop('ls', 0)
+            metal = b.GENERAL_METAL_FORMAT.format(location=location, name=name,
+                                                  pattern_id=pattern_id, r_dc=r_dc,
+                                                  r_rf=r_rf, x_dc=x_dc, ls=ls)
+        elif metal_type == 'sense':
+            raise NotImplementedError
+        elif metal_type == 'thick metal':
+            raise NotImplementedError
+        elif metal_type == 'rough metal':
+            raise NotImplementedError
+        elif metal_type == 'volume loss':
+            raise NotImplementedError
+        elif metal_type == 'surface loss':
+            raise NotImplementedError
+        elif metal_type == 'array loss':
+            raise NotImplementedError
+        else:
+            message = "'metal_type' must be one of {}".format(metal_types)
+            raise ValueError(message)
+        metals = os.linesep.join(metals.append(metal))
+        # add the metal definitions to the geometry
+        self['geometry']['metals'] = metals
+        # run again if the bottom layer needs to be set as well
+        if run_again:
+            self.define_metal(metal_type, name, top=False, bottom=True)
 
     def add_dimension(self):
         """Adds a dimension to the simulation geometry."""
@@ -409,10 +515,10 @@ class GeometryProject(Project):
         """
         Add an output file for the response data from the analysis of the project.
 
-        :param file_type: output file type (str)
+        :param file_type: output file type (string)
             Valid options are 'touchstone', 'touchstone2', 'databank', 'scompact',
             'spreadsheet'/'csv', 'cadance', 'mdif_s2p'/'mdif', and 'mdif_ebridge'.
-        :param output_folder: relative path to where the data is saved (str)
+        :param output_folder: relative path to where the data is saved (string)
             If no folder is chosen, data will be saved in the top level of the project
             directory. This option can only be set once per Project, and it's value is
             overwritten if selected again.
@@ -420,11 +526,11 @@ class GeometryProject(Project):
         :param include_abs: include the abs calculated data, defaults to True (boolean)
         :param include_comments: include comments in the file, defaults to True (boolean)
         :param high_precision: use high precision numbers, defaults to True (boolean)
-        :param file_name: output data file name, defaults to the sonnet file name (str)
-        :param parameter_type: type of parameter to output (str)
+        :param file_name: output data file name, defaults to the sonnet file name (string)
+        :param parameter_type: type of parameter to output (string)
             Valid options are 'S' for the scattering parameters, 'Y' for the Y-parameters,
             and 'Z' for the Z-parameters.
-        :param parameter_form: form of the output parameters (str)
+        :param parameter_form: form of the output parameters (string)
             Valid options are 'MA' for magnitude-angle, 'DB' for dB-angle, and 'RI' for
             real-imaginary.
         """

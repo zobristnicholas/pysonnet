@@ -62,6 +62,8 @@ NUM {n_polygons}
 {polygons}
 END GEO
 """
+FREESPACE_FORMAT = '{location} “Free Space” 0 FREESPACE 376.7303136 0 0 0'
+GENERAL_METAL_FORMAT = '{location} "{name}" {pattern_id} SUP {r_dc} {r_rf} {x_dc} {ls}'
 
 # frequency block
 FREQUENCY = """\
