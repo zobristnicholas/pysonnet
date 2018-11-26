@@ -194,39 +194,52 @@ class Project(dict):
         self['sonnet']['version'] = version
         self['sonnet']['license_id'] = license_id
 
-    def add_frequency_sweep(self, sweep_type, f1=None, f2=None, n_points=None,
-                            f_step=None, frequency_list=None, s_parameter=None):
+    def add_frequency_sweep(self, sweep_type, **kwargs):
         """
         Add a frequency sweep to the analysis for the project. All added sweeps will be
         computed if the 'frequency' sweep_type is selected using run().
 
         :param sweep_type: sweep type to add to the project (str)
-            Valid options are listed below with the additional arguments that can be used
-            for each. Refer to the Sonnet documentation for details on the sweep types.
-            'linear':
-                f1, f2, and (n_points or f_step)
-            'exponential':
-                f1, f2, and n_points
-            'single':
-                f1
-            'list':
-                frequency_list
-            'dc':
-                f1 (optional in units of kHz), if not specified a value is calculated for
-                you by Sonnet
-            'abs':
-                f1 and f2
-            'abs min':
-                s_parameter, f1, and f2
-            'abs max':
-                s_parameter, f1 and f2
-        :param f1: a frequency (float)
-        :param f2: a frequency (float)
-        :param n_points: number of points in the sweep (int)
-        :param f_step: frequency step in the sweep (float)
-        :param frequency_list: list of frequencies for the sweep (list of floats)
-        :param s_parameter: name of the scattering parameter (str), e.g. "S21"
+            Valid options are listed below with the additional keyword arguments that can
+            be used for each. Refer to the Sonnet documentation for details on the sweep
+            types.
+            'linear': compute on a linear range between f1 and f2 with n_points (f_step)
+                :keyword f1: lower frequency (float)
+                :keyword f2: upper frequency (float)
+                :keyword n_points: number of points in the sweep, optional (int)
+                :keyword f_step: frequency step in the sweep, optional (float)
+            'exponential': compute on an exponential range between f1 and f2
+                :keyword f1: lower frequency (float)
+                :keyword f2: upper frequency (float)
+                :keyword n_points: number of points in the sweep (int)
+            'single': compute at a single frequency point
+                :keyword f1: frequency (float)
+            'list': compute at a list of frequencies
+                :keyword frequency_list: frequencies list for the sweep (list of floats)
+            'dc': compute a dc point
+                :keyword f1: frequency (float)
+                    This keyword is optional for a dc point calculation, but must be in
+                    units of kHz. If it is not specified, a value is calculated for you by
+                    Sonnet.
+            'abs': compute using the adaptive band synthesis (ABS) sweep
+                :keyword f1: lower frequency (float)
+                :keyword f2: upper frequency (float)
+            'abs min': compute the minimum of the s_parameter using the ABS sweep
+                :keyword f1: lower frequency (float)
+                :keyword f2: upper frequency (float)
+                :keyword s_parameter: name of the scattering parameter (str), e.g. "S21"
+            'abs max': compute the maximum of the s_parameter using the ABS sweep
+                :keyword f1: lower frequency (float)
+                :keyword f2: upper frequency (float)
+                :keyword s_parameter: name of the scattering parameter (str), e.g. "S21"
         """
+        # pull out the needed keyword arguments. The rest are ignored
+        f1 = kwargs.pop('f1', None)
+        f2 = kwargs.pop('f2', None)
+        n_points = kwargs.pop('n_points', None)
+        f_step = kwargs.pop('f_step', None)
+        frequency_list = kwargs.pop('frequency_list', None)
+        s_parameter = kwargs.pop('s_parameter', None)
         # define some messages to be used throughout the function
         f1_f2_message = "'f1' and 'f2' must be defined for this sweep"
         f1_message = "'f1' must be defined for this sweep"
@@ -423,11 +436,11 @@ class GeometryProject(Project):
             'normal': cannot be used for vias
             'resistor': cannot be used for vias
             'native': cannot be used for vias
-            'general': cannot be used for vias
-                r_dc: DC resistance [(m)Ohms/sq], zero by default (float)
-                r_rf: skin effect coefficient [Ohms/sqrt(Hz)/sq], zero by default (float)
-                x_dc: DC reactance [(m)Ohms/sq], zero by default (float)
-                ls: surface inductance [pH/sq], zero by default (float)
+            'general': cannot be used for vias. All keywords are set to zero by default
+                :keyword r_dc: DC resistance [(m)Ω/sq] (float)
+                :keyword r_rf: skin effect coefficient [Ω/sqrt(Hz)/sq] (float)
+                :keyword x_dc: DC reactance [(m)ohms/sq] (float)
+                :keyword ls: surface inductance [pH/sq] (float)
             'sense': cannot be used for vias
             'thick metal': cannot be used for vias or the top and bottom layers
             'rough metal': cannot be used for vias or the top and bottom layers
