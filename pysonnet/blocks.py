@@ -68,6 +68,14 @@ LAYER_FORMAT = ('{thickness} {xy_epsilon} {xy_mu} {xy_e_loss} {xy_m_loss} {xy_si
                 '{z_partitions} "{name}" {z_epsilon} {z_mu} {z_e_loss} {z_m_loss} '
                 '{z_sigma}')
 ORIGIN_FORMAT = "LORGN {dx} {dy} {locked}"
+PORT_FORMAT = """\
+POR1 {port_type} {group_id}
+{diagonal}
+POLY {file_id} 1
+{polygon_index}
+{number} {resistance} {reactance} {inductance} {capacitance} {x} {y} {ref_type} {length}
+"""
+DIAGONAL_FORMAT = "DIAGALLOWED {allowed}"
 
 # frequency block
 FREQUENCY = """\

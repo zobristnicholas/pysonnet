@@ -80,7 +80,7 @@ class CurrentDensity:
     def drive_voltage(self, port):
         """Voltage of the input sine wave in volts sent into the specified port during the
         simulation.
-        :param port: port number requested (int)
+        :param port: port number requested (integer)
         :return: the voltage output (float)
         :raises ValueError if the specified port isn't in the file
         """
@@ -98,7 +98,7 @@ class CurrentDensity:
     def drive_phase(self, port):
         """Phase of the input sine wave in degrees sent into the specified port during the
         simulation.
-        :param port: port number requested (int)
+        :param port: port number requested (integer)
         :return: the voltage output unit (string)
         :raises ValueError if the specified port isn't in the file
         """

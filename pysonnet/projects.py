@@ -200,18 +200,18 @@ class Project(dict):
         computed if the 'frequency' sweep_type is selected using run().
 
         :param sweep_type: sweep type to add to the project (str)
-            Valid options are listed below with the additional keyword arguments that can
-            be used for each. Refer to the Sonnet documentation for details on the sweep
+            Valid options are listed below with the additional keyword arguments that may
+            be needed for each. Refer to the Sonnet documentation for details on the sweep
             types.
             'linear': compute on a linear range between f1 and f2 with n_points (f_step)
                 :keyword f1: lower frequency (float)
                 :keyword f2: upper frequency (float)
-                :keyword n_points: number of points in the sweep, optional (int)
+                :keyword n_points: number of points in the sweep, optional (integer)
                 :keyword f_step: frequency step in the sweep, optional (float)
             'exponential': compute on an exponential range between f1 and f2
                 :keyword f1: lower frequency (float)
                 :keyword f2: upper frequency (float)
-                :keyword n_points: number of points in the sweep (int)
+                :keyword n_points: number of points in the sweep (integer)
             'single': compute at a single frequency point
                 :keyword f1: frequency (float)
             'list': compute at a list of frequencies
@@ -544,14 +544,14 @@ class GeometryProject(Project):
         interpreted as [xy property, z property].
 
         :param name: name of the dielectric layer (str)
-        :param level: level of the dielectric layer (int)
+        :param level: level of the dielectric layer (integer)
         :param thickness: thickness of the layer in the project length units (float)
         :param epsilon: relative dielectric constant (float or length 2 list of floats)
         :param mu: relative permeability (float or length 2 list of floats)
         :param dielectric_loss: dielectric loss tangent (float or length 2 list of floats)
         :param magnetic_loss: magnetic loss tangent (float or length 2 list of floats)
         :param conductivity: bulk conductivity (float or length 2 list of floats)
-        :param z_partitions: number of z-partitions for dielectric bricks (int)
+        :param z_partitions: number of z-partitions for dielectric bricks (integer)
         """
         # check the inputs
         message = "'{}' parameter must be an integer"
@@ -623,8 +623,8 @@ class GeometryProject(Project):
 
         :param box_width_x: length of the box in the x direction (float)
         :param box_width_y: length of the box in the y direction (float)
-        :param x_cells: number of cells in the x direction (int)
-        :param y_cells: number of cells in the y direction (int)
+        :param x_cells: number of cells in the x direction (integer)
+        :param y_cells: number of cells in the y direction (integer)
         """
         self['box_width_x'] = float(box_width_x)
         self['box_width_y'] = float(box_width_y)
@@ -656,8 +656,43 @@ class GeometryProject(Project):
         origin = b.ORIGIN_FORMAT.format(dx=dx, dy=-dy, locked=locked_values[locked])
         self['geometry']['origin'] = origin
 
-    def add_port(self):
-        """Adds a port to the project."""
+    def add_port(self, port_type, number, file_id, polygon_index, resistance=0,
+                 reactance=0, inductance=0, capacitance=0, **kwargs):
+        """
+        Adds a port to the project.
+
+        :param port_type: type of port to add (string)
+            Valid options are listed below with the additional keyword arguments that may
+            be needed for each.
+            'standard': a standard Sonnet port. (string)
+                These keywords are only needed if the port is an independent port.
+                :keyword diagonal
+                :keyword fixed_reference_plane
+                :keyword length
+            'auto-grounded': a grounding port used in the interior of a geometry (string)
+                These keywords are required.
+                :keyword fixed_reference_plane
+                :keyword length
+            'co-calibrated': a port that is part of a calibration group (string)
+                These keywords are required.
+                :keyword fixed_reference_plane
+                :keyword length
+                :keyword group_id
+        :param number: port number (non-zero integer)
+        :param file_id: polygon id number
+        :param polygon_index: index of the first point defining the port edge (integer)
+        :param resistance: resistance of the port in ohms (float)
+        :param reactance: reactance of the port in ohms (float)
+        :param inductance: inductance of the port in nH (float)
+        :param capacitance: capacitance of the port in pF (float)
+        :keyword diagonal: allow the reference plane to be diagonal (boolean)
+            This keyword only works if the port is a box wall port and independent.
+        :keyword fixed_reference_plane: is the reference plane fixed (boolean)
+        :keyword length: calibration length (float)
+            When fixed_reference_plane=True, this parameter is the length of the reference
+            plane.
+        :keyword group_id: co-calibration group id (string)
+        """
         raise NotImplementedError
 
     def add_calibration_group(self):
