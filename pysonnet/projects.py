@@ -9,6 +9,49 @@ from datetime import datetime
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
+units = {'conductivity': {'microsiemens/centimeter': 'USCM', 'uS/cm': 'USCM',
+                          'µS/cm': 'USCM',
+                          'millisiemens/centimeter': 'MSCM', 'mS/cm': 'MSCM',
+                          'siemens/meter': 'SM', 'S/m': 'SM',
+                          'siemens/centimeter': 'SCM', 'S/cm': 'SCM'},
+         'frequency': {"Hz": "HZ", "hertz": "HZ",
+                       "kHz": "KHZ", "kilohertz": "KHZ",
+                       "MHz": "MHZ", "megahertz": "MHZ",
+                       "GHz": "GHZ", "gigahertz": "GHZ",
+                       "THZ": "THZ", "terahertz": "THZ",
+                       "PHz": "PHZ", "petahertz": "PHZ"},
+         'resistivity': {"ohm centimeter": "OHCM", "ohm cm": "OHCM", "Ω cm": "OHCM",
+                         "ohm meter": "OHMM", "ohm m": "OHMM", "Ω m": "OHMM"},
+         'sheet_resistance': {"milliohm/square": "MOSQ", "mohm/sq": "MOSQ",
+                              "mΩ/sq": "MOSQ",
+                              "ohm/square": "OHSQ", "ohm/sq": "OHSQ", "Ω/sq": "OHSQ"},
+         'inductance': {"femtohenry": "FH", "fH": "FH",
+                        "picohenry": "PH", "pH": "PH",
+                        "nanohenry": "NH", "nH": "NH",
+                        "microhenry": "UH", "uH": "UH", "µH": "UH",
+                        "millihenry": "MH", "mH": "MH",
+                        "henry": "H", "H": "H"},
+         'length': {"micrometer": "UM", "um": "UM", "µm": "UM",
+                    "milliinch": "MIL", "min": "MIL", "mil": "MIL",
+                    "millimeter": "MM", "mm": "MM",
+                    "centimeter": "CM", "cm": "CM",
+                    "inch": "IN", "in": "IN",
+                    "foot": "FT", "ft": "FT",
+                    "meter": "M", "m": "M"},
+         'angle': {"degree": "DEG", "deg": "DEG"},
+         'conductance': {"1/ohm": "/OH", "1/Ω": "/OH"},
+         'capacitance': {"femtofarad": "FF", "fF": "FF",
+                         "picofarad": "PF", "pF": "PF",
+                         "nanofarad": "NF", "nF": "NF",
+                         "microfarad": "UF", "uF": "UF", "µF": "UF",
+                         "millifarad": "MF", "mf": "MF",
+                         "farad": "F", "F": "F"},
+         'resistance': {"milliohm": "WOH", "mohm": "WOH", "mΩ": "WOH",
+                        "ohm": "OH", "Ω": "OH",
+                        "kiloohm": "KOH", "kohm": "KOH", "kΩ": "KOH",
+                        "megaohm": "MOH", "Mohm": "MOH", "MΩ": "MOH",
+                        "gigaohm": "GOH", "Gohm": "GOH", "GΩ": "GOH",
+                        "teraohm": "TOH", "Tohm": "TOH", "TΩ": "TOH"}}
 
 
 def add_line(string, addition):
@@ -277,8 +320,33 @@ class Project(dict):
         self['optimization']['optimization_parameters'] = ''
         self['optimization']['optimization_goals'] = ''
 
-    def set_units(self):
-        raise NotImplementedError
+    def set_units(self, **kwargs):
+        """
+        Set the base units for the project. This method will not maintain the physical
+        size of any parameters already specified. Allowed keywords are listed below. Fully
+        spelled units are supported as well as unicode Greek letters.
+
+        :keyword conductivity: 'uS/cm', 'mS/cm', 'S/m' (default), and 'S/cm'
+        :keyword frequency: 'Hz', 'kHz', 'MHz', 'GHz' (default), 'THz', and 'PHz'
+        :keyword resistivity: 'ohm cm' (default) and 'ohm m'
+        :keyword sheet_resistance: 'mohm/sq' and 'ohm/sq' (default)
+        :keyword inductance: 'fH', 'pH', 'nH' (default), 'uH', 'mH', and 'H'
+        :keyword length: 'um', 'mil' (default), 'mm', 'cm', 'in', 'ft', and 'm'
+        :keyword angle: 'deg' (default)
+        :keyword conductance: '1/ohm' (default)
+        :keyword capacitance: 'fF', 'pF' (default), 'nF', 'uF', 'mF', and 'F'
+        :keyword resistance: 'mohm', 'ohm' (default), 'kohm', 'Mohm', 'Gohm' and 'Tohm'
+        """
+        # check inputs
+        message = "'{}' is not in {}"
+        for key in kwargs.keys():
+            assert key in units.keys(), \
+                message.format(key, list(units.keys()))
+            assert kwargs[key] in units[key].keys(), \
+                message.format(kwargs[key], list(units[key].keys()))
+        # add unit to the project
+        for key, value in kwargs:
+            self['dimensions'][key] = units[key][value]
 
 
 class GeometryProject(Project):

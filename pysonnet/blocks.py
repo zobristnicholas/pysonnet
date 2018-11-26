@@ -23,16 +23,16 @@ END HEADER
 # dimensions block
 DIMENSIONS = """\
 DIM
-CDVY {conductivity_unit}
-FREQ {frequency_unit}
-RSVY {resistivity_unit}
-SRES {sheet_resistance_unit}
-IND {inductance_unit}
-LNG {length_unit}
-ANG {angle_unit}
-CON {conductance_unit}
-CAP {capacitance_unit}
-RES {resistance_unit}
+CDVY {conductivity}
+FREQ {frequency}
+RSVY {resistivity}
+SRES {sheet_resistance}
+IND {inductance}
+LNG {length}
+ANG {angle}
+CON {conductance}
+CAP {capacitance}
+RES {resistance}
 END DIM
 """
 
