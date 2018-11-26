@@ -277,6 +277,9 @@ class Project(dict):
         self['optimization']['optimization_parameters'] = ''
         self['optimization']['optimization_goals'] = ''
 
+    def set_units(self):
+        raise NotImplementedError
+
 
 class GeometryProject(Project):
     """
@@ -452,9 +455,79 @@ class GeometryProject(Project):
         """Adds a dimension to the simulation geometry."""
         raise NotImplementedError
 
-    def define_dielectric(self):
-        """Defines a dielectric that can be used in the project."""
-        raise NotImplementedError
+    def add_dielectric(self, name, level, thickness=0, epsilon=(1,), mu=(1,),
+                       dielectric_loss=(0,), magnetic_loss=(0,), conductivity=(0,),
+                       z_partitions=0):
+        """
+        Adds a dielectric layer to the project. Parameters input as length two lists are
+        interpreted as [xy property, z property].
+
+        :param name: name of the dielectric layer (str)
+        :param level: level of the dielectric layer (int)
+        :param thickness: thickness of the layer in the project length units (float)
+        :param epsilon: relative dielectric constant (float or length 2 list of floats)
+        :param mu: relative permeability (float or length 2 list of floats)
+        :param dielectric_loss: dielectric loss tangent (float or length 2 list of floats)
+        :param magnetic_loss: magnetic loss tangent (float or length 2 list of floats)
+        :param conductivity: bulk conductivity (float or length 2 list of floats)
+        :param z_partitions: number of z-partitions for dielectric bricks (int)
+        """
+        # check the inputs
+        message = "'{}' parameter must be an integer"
+        assert isinstance(level, int), message.format('level')
+        assert isinstance(z_partitions, int), message.format('z_partitions')
+        anisotropic = ['epsilon', 'mu', 'dielectric_loss', 'magnetic_loss',
+                       'conductivity']
+        any_z = False
+        for name in anisotropic:
+            value = locals()[name]
+            message = "'{}' must be a float or a length two list of floats"
+            if not isinstance(value, (tuple, list)):
+                assert isinstance(value, (int, float)), message.format(name)
+                locals()[name] = [value]
+            else:
+                condition = (isinstance(value, (tuple, list)) and
+                             (len(value) == 2 or len(value) == 1))
+                if condition:
+                    for element in value:
+                        condition = condition and isinstance(element, (int, float))
+                assert condition, message.format(name)
+            any_z = (any_z or len(value) == 2)
+        # get the current layers
+        layers = self['geometry']['layers'].splitlines()
+        # add some unnamed layers if the level we are adding larger than the current size
+        if level >= len(layers):
+            unnamed = b.LAYER_FORMAT.format(name="Unnamed", thickness=0, xy_epsilon=1,
+                                            xy_mu=1, xy_e_loss=0, xy_m_loss=0, xy_sigma=0,
+                                            z_partitions=0, z_epsilon="", z_mu="",
+                                            z_e_loss="", z_m_loss="", z_sigma="")
+            layers += unnamed * (level + 1 - len(layers))
+        # add the new number of metal levels to the project
+        self['geometry']['n_metal_levels'] = len(layers) - 1
+        # define xy layer parameters
+        parameters = {'name': name, 'thickness': thickness, 'z_partitions': z_partitions,
+                      'xy_epsilon': epsilon[0], 'xy_mu': mu[0],
+                      'xy_e_loss': dielectric_loss[0], 'xy_m_loss': magnetic_loss[0],
+                      'xy_sigma': conductivity[0]}
+        # define z layer parameters
+        if any_z:
+            z_parameters = {'z_epsilon': epsilon[1] if len(epsilon) == 2 else epsilon[0],
+                            'z_mu': mu[1] if len(mu) == 2 else mu[0],
+                            'z_e_loss': (dielectric_loss[1] if len(dielectric_loss) == 2
+                                         else dielectric_loss[0]),
+                            'z_m_loss': (magnetic_loss[1] if len(magnetic_loss) == 2
+                                         else magnetic_loss[0]),
+                            'z_sigma': (conductivity[1] if len(conductivity) == 2
+                                        else conductivity[0])}
+        else:
+            z_parameters = {'z_epsilon': "", 'z_mu': "", 'z_e_loss': "", 'z_m_loss': "",
+                            'z_sigma': ""}
+        # format the new dielectric layer
+        parameters.update(z_parameters)
+        layers[level] = b.LAYER_FORMAT.format(**parameters)
+        # add the new dielectric layer to the geometry
+        layers = os.linesep.join(layers)
+        self['geometry']['layers'] = layers
 
     def add_variable(self, box_size_x=False, box_size_y=False):
         """Adds a variable to the project."""
