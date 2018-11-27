@@ -20,7 +20,7 @@ geometry:
   angle: 45
   parallel_subsections: ''
   reference_planes: ''
-  metals: "TMET Lossless 0 SUP 0 0 0 0 \nBMET Lossless 0 SUP 0 0 0 0"
+  metals: "TMET \"Lossless\" 0 SUP 0 0 0 0 \nBMET \"Lossless\" 0 SUP 0 0 0 0"
   dimensions: ''
   dielectrics: ''
   variables: ''

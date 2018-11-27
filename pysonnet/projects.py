@@ -315,7 +315,7 @@ class Project(dict):
             assert kwargs[key] in b.UNITS[key].keys(), \
                 message.format(kwargs[key], list(b.UNITS[key].keys()))
         # add unit to the project
-        for key, value in kwargs:
+        for key, value in kwargs.items():
             self['dimensions'][key] = b.UNITS[key][value]
 
 
@@ -379,7 +379,7 @@ class GeometryProject(Project):
         # add the reference plane to the geometry
         add_line(self['geometry']['reference_planes'], plane)
 
-    def define_metal(self, metal_type, name, top=False, bottom=False, **kwargs):
+    def define_metal(self, metal_type, name=None, top=False, bottom=False, **kwargs):
         """
         Defines a metal that can be used in the project and sets the top and bottom box
         cover metals.
@@ -389,7 +389,8 @@ class GeometryProject(Project):
             used with them. Where ambiguous, the parameters' units are determined by the
             project level units.
             'waveguide load': only for the top and bottom layers.
-            'free space': can only for the top and bottom layers.
+            'free space': only for the top and bottom layers.
+            'lossless': alias for 'general' with no arguments
             'normal': cannot be used for vias
             'resistor': cannot be used for vias
             'native': cannot be used for vias
@@ -405,54 +406,52 @@ class GeometryProject(Project):
             'surface loss': only for vias
             'array loss': only for vias
         :param name: metal name that must be unique in the project (string)
+            Not used for 'waveguide load', 'free space' and 'lossless' since they have
+            reserved names. Therefore, 'WG Load', 'FreeSpace', 'Free Space', and
+            'Lossless' are not allowed.
         :param top: determines if the metal is used for the top of the box (boolean)
         :param bottom: determines if the metal is used for the bottom of the box (boolean)
         """
-        cover_types = ['waveguide load', 'free space', 'normal', 'resistor',
+        # check name parameter
+        reserved_names = ['WG Load', 'FreeSpace', 'Free Space', 'Lossless']
+        reserved_types = ['waveguide load', 'free space', 'lossless']
+        message = "'name' parameter can not be in {}".format(reserved_names)
+        assert name not in reserved_names, message
+        if metal_type not in reserved_types:
+            message = "'name' parameter must be defined for metals not of these types {}"
+            assert name is not None, message.format(reserved_types)
+        # check that valid types are given to top and bottom metals
+        cover_types = ['waveguide load', 'free space', 'lossless', 'normal', 'resistor',
                        'native', 'general', 'sense']
         metal_types = cover_types.append(['thick metal', 'rough metal', 'volume loss',
                                           'surface loss', 'array loss'])
+        if top or bottom:
+            cover_message = ("metals on the box top and bottom can only be of the "
+                             "following types: {}").format(cover_types)
+            assert metal_type in cover_types, cover_message
         # determine if the method needs to be run twice to set both the top and bottom
         if top and bottom:
             run_again = True
         else:
             run_again = False
-        # check that valid types are given to top and bottom metals
-        if top or bottom:
-            cover_message = ("metals on the box top and bottom can only be of the "
-                             "following types: {}").format(cover_types)
-            assert metal_type in cover_types, cover_message
         # determine the pattern id and set the location string
         metals = self['geometry']['metals'].splitlines()
         if top:
             location = "TMET"
-            replace = True
             pattern_id = 0
         elif bottom:
             location = "BMET"
-            replace = True
             pattern_id = 0
         else:
             location = "MET"
-            replace = False
             pattern_id = len(metals) - 2
-        # if the top or bottom metal are being replaced keep the metal in the metals list
-        if replace:
-            names = [metal.split()[1].strip('"') for metal in metals]
-            replace_metal = metals[0] if top else metals[1]
-            replace_name = replace_metal.split()[1].strip('"')
-            conditions = (replace_name not in names and replace_name != "Free Space" and
-                          replace_name != "Freespace" and replace_name != "WG Load")
-            if conditions:
-                replace_metal = replace_metal.split()
-                replace_metal[2] = len(metals) - 3
-                replace_metal = " ".join(replace_metal)
-                metals.append(replace_metal)
-        # add the new metal to the metals list
+        # format the new metal
         if metal_type == 'waveguide load':
             raise NotImplementedError
         elif metal_type == 'free space':
-            metal = b.FREESPACE_FORMAT(location=location)
+            metal = b.FREESPACE_FORMAT.format(location=location)
+        elif metal_type == 'lossless':
+            metal = b.LOSSLESS_FORMAT.format(location=location)
         elif metal_type == 'normal':
             raise NotImplementedError
         elif metal_type == 'resistor':
@@ -482,12 +481,34 @@ class GeometryProject(Project):
         else:
             message = "'metal_type' must be one of {}".format(metal_types)
             raise ValueError(message)
-        metals = os.linesep.join(metals.append(metal))
+        # add the new metal to the metals list replacing if needed
+        current_name = (metal.split('"')[1] if len(metal.split('"')) > 1 else
+                        metal.split()[1])  # needed if name=None
+        index = 0 if top else 1
+        if top or bottom:
+            old_metal = metals[index]
+            old_name = (old_metal.split('"')[1] if len(old_metal.split('"')) > 1 else
+                        old_metal.split()[1])
+            other_names = []
+            for ind, line in enumerate(metals):
+                if ind != index:
+                    new_name = (line.split('"')[1] if len(line.split('"')) > 1 else
+                                line.split()[1])
+                    other_names.append(new_name)
+            if old_name not in other_names and old_name != current_name:
+                old_metal = old_metal.split()
+                old_metal[2] = str(len(metals) - 2)
+                old_metal[0] = "MET"
+                metals.append(" ".join(old_metal))
+            metals[index] = metal
+        else:
+            metals.append(metal)
         # add the metal definitions to the geometry
+        metals = os.linesep.join(metals)
         self['geometry']['metals'] = metals
         # run again if the bottom layer needs to be set as well
         if run_again:
-            self.define_metal(metal_type, name, top=False, bottom=True)
+            self.define_metal(metal_type, name=name, top=False, bottom=True)
 
     def add_dimension(self):
         """Adds a dimension to the simulation geometry."""
@@ -514,15 +535,14 @@ class GeometryProject(Project):
         message = "'{}' parameter must be an integer"
         assert isinstance(level, int), message.format('level')
         assert isinstance(z_partitions, int), message.format('z_partitions')
-        anisotropic = ['epsilon', 'mu', 'dielectric_loss', 'magnetic_loss',
-                       'conductivity']
+        anisotropic = {'epsilon': epsilon, 'mu': mu, 'dielectric_loss': dielectric_loss,
+                       'magnetic_loss': magnetic_loss, 'conductivity': conductivity}
         any_z = False
-        for name in anisotropic:
-            value = locals()[name]
+        for key, value in anisotropic.items():
             message = "'{}' must be a float or a length two list of floats"
             if not isinstance(value, (tuple, list)):
                 assert isinstance(value, (int, float)), message.format(name)
-                locals()[name] = [value]
+                anisotropic[key] = [value]
             else:
                 condition = (isinstance(value, (tuple, list)) and
                              (len(value) == 2 or len(value) == 1))
@@ -530,7 +550,12 @@ class GeometryProject(Project):
                     for element in value:
                         condition = condition and isinstance(element, (int, float))
                 assert condition, message.format(name)
-            any_z = (any_z or len(value) == 2)
+            any_z = (any_z or len(anisotropic[key]) == 2)
+        epsilon = anisotropic['epsilon']
+        mu = anisotropic['mu']
+        dielectric_loss = anisotropic['dielectric_loss']
+        magnetic_loss = anisotropic['magnetic_loss']
+        conductivity = anisotropic['conductivity']
         # get the current layers
         layers = self['geometry']['layers'].splitlines()
         # add some unnamed layers if the level we are adding larger than the current size
@@ -583,10 +608,10 @@ class GeometryProject(Project):
         :param x_cells: number of cells in the x direction (integer)
         :param y_cells: number of cells in the y direction (integer)
         """
-        self['box_width_x'] = float(box_width_x)
-        self['box_width_y'] = float(box_width_y)
-        self['x_cells2'] = 2 * int(x_cells)
-        self['y_cells2'] = 2 * int(y_cells)
+        self['geometry']['box_width_x'] = float(box_width_x)
+        self['geometry']['box_width_y'] = float(box_width_y)
+        self['geometry']['x_cells2'] = 2 * int(x_cells)
+        self['geometry']['y_cells2'] = 2 * int(y_cells)
 
     def define_dielectric_bricks(self):
         """Defines a dielectric brick that can be used in the project."""
@@ -613,7 +638,7 @@ class GeometryProject(Project):
         origin = b.ORIGIN_FORMAT.format(dx=dx, dy=-dy, locked=locked_values[locked])
         self['geometry']['origin'] = origin
 
-    def add_port(self, port_type, number, file_id, polygon_index, resistance=0,
+    def add_port(self, port_type, number, polygon_id, polygon_index, resistance=0,
                  reactance=0, inductance=0, capacitance=0, **kwargs):
         """
         Adds a port to the project.
@@ -636,7 +661,7 @@ class GeometryProject(Project):
                 :keyword length
                 :keyword group_id
         :param number: port number (non-zero integer)
-        :param file_id: polygon id number
+        :param polygon_id: polygon id number
         :param polygon_index: index of the first point defining the port edge (integer)
         :param resistance: resistance of the port in ohms (float)
         :param reactance: reactance of the port in ohms (float)

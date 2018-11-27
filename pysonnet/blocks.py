@@ -105,7 +105,8 @@ NUM {n_polygons}
 {polygons}
 END GEO
 """
-FREESPACE_FORMAT = '{location} “Free Space” 0 FREESPACE 376.7303136 0 0 0'
+FREESPACE_FORMAT = '{location} "Free Space" 0 FREESPACE 376.7303136 0 0 0'
+LOSSLESS_FORMAT = '{location} "Lossless" 0 SUP 0 0 0 0'
 GENERAL_METAL_FORMAT = '{location} "{name}" {pattern_id} SUP {r_dc} {r_rf} {x_dc} {ls}'
 LAYER_FORMAT = ('{thickness} {xy_epsilon} {xy_mu} {xy_e_loss} {xy_m_loss} {xy_sigma} '
                 '{z_partitions} "{name}" {z_epsilon} {z_mu} {z_e_loss} {z_m_loss} '
