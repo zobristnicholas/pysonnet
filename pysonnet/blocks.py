@@ -105,6 +105,7 @@ NUM {n_polygons}
 {polygons}
 END GEO
 """
+WG_LOAD_FORMAT = '{location} "WG Load" 0 WGLOAD'
 FREESPACE_FORMAT = '{location} "Free Space" 0 FREESPACE 376.7303136 0 0 0'
 LOSSLESS_FORMAT = '{location} "Lossless" 0 SUP 0 0 0 0'
 GENERAL_METAL_FORMAT = '{location} "{name}" {pattern_id} SUP {r_dc} {r_rf} {x_dc} {ls}'
@@ -120,6 +121,17 @@ POLY {file_id} 1
 {number} {resistance} {reactance} {inductance} {capacitance} {x} {y} {ref_type} {length}
 """
 DIAGONAL_FORMAT = "DIAGALLOWED {allowed}"
+TECHLAYER_FORMAT = """\
+TECHLAY {layer_type} "{name}"  <UNSPECIFIED> -1 0
+{type}
+{level}
+{to_level}
+END
+END
+"""
+LEVEL_FORMAT = ("{level} {n_vertices} {metal} {fill_type} 0 {x_min} {y_min} {x_max} "
+                "{y_max} {conformal_max} 0 0 {edge_mesh}")
+TO_LEVEL_FORMAT = "TOLEVEL {to_level} {via_fill_type} {pads}"
 
 # frequency block
 FREQUENCY = """\

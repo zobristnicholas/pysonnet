@@ -1,8 +1,10 @@
 import os
 import yaml
+import shlex
 import psutil
 import logging
 import subprocess
+import numpy as np
 import pysonnet.blocks as b
 from datetime import datetime
 
@@ -379,18 +381,14 @@ class GeometryProject(Project):
         # add the reference plane to the geometry
         add_line(self['geometry']['reference_planes'], plane)
 
-    def define_metal(self, metal_type, name=None, top=False, bottom=False, **kwargs):
+    def define_metal(self, metal_type, name, **kwargs):
         """
-        Defines a metal that can be used in the project and sets the top and bottom box
-        cover metals.
+        Defines a metal that can be used in the project.
 
         :param metal_type: type of metal to add to the project (string)
             Valid types are listed below with any additional keyword arguments that may be
             used with them. Where ambiguous, the parameters' units are determined by the
             project level units.
-            'waveguide load': only for the top and bottom layers.
-            'free space': only for the top and bottom layers.
-            'lossless': alias for 'general' with no arguments
             'normal': cannot be used for vias
             'resistor': cannot be used for vias
             'native': cannot be used for vias
@@ -406,53 +404,13 @@ class GeometryProject(Project):
             'surface loss': only for vias
             'array loss': only for vias
         :param name: metal name that must be unique in the project (string)
-            Not used for 'waveguide load', 'free space' and 'lossless' since they have
-            reserved names. Therefore, 'WG Load', 'FreeSpace', 'Free Space', and
-            'Lossless' are not allowed.
-        :param top: determines if the metal is used for the top of the box (boolean)
-        :param bottom: determines if the metal is used for the bottom of the box (boolean)
         """
-        # check name parameter
-        reserved_names = ['WG Load', 'FreeSpace', 'Free Space', 'Lossless']
-        reserved_types = ['waveguide load', 'free space', 'lossless']
-        message = "'name' parameter can not be in {}".format(reserved_names)
-        assert name not in reserved_names, message
-        if metal_type not in reserved_types:
-            message = "'name' parameter must be defined for metals not of these types {}"
-            assert name is not None, message.format(reserved_types)
-        # check that valid types are given to top and bottom metals
-        cover_types = ['waveguide load', 'free space', 'lossless', 'normal', 'resistor',
-                       'native', 'general', 'sense']
-        metal_types = cover_types.append(['thick metal', 'rough metal', 'volume loss',
-                                          'surface loss', 'array loss'])
-        if top or bottom:
-            cover_message = ("metals on the box top and bottom can only be of the "
-                             "following types: {}").format(cover_types)
-            assert metal_type in cover_types, cover_message
-        # determine if the method needs to be run twice to set both the top and bottom
-        if top and bottom:
-            run_again = True
-        else:
-            run_again = False
         # determine the pattern id and set the location string
         metals = self['geometry']['metals'].splitlines()
-        if top:
-            location = "TMET"
-            pattern_id = 0
-        elif bottom:
-            location = "BMET"
-            pattern_id = 0
-        else:
-            location = "MET"
-            pattern_id = len(metals) - 2
+        pattern_id = len(metals) - 2
+        location = "MET"
         # format the new metal
-        if metal_type == 'waveguide load':
-            raise NotImplementedError
-        elif metal_type == 'free space':
-            metal = b.FREESPACE_FORMAT.format(location=location)
-        elif metal_type == 'lossless':
-            metal = b.LOSSLESS_FORMAT.format(location=location)
-        elif metal_type == 'normal':
+        if metal_type == 'normal':
             raise NotImplementedError
         elif metal_type == 'resistor':
             raise NotImplementedError
@@ -479,36 +437,89 @@ class GeometryProject(Project):
         elif metal_type == 'array loss':
             raise NotImplementedError
         else:
+            metal_types = ['normal', 'resistor', 'native', 'general', 'sense',
+                           'thick metal', 'rough metal', 'volume loss', 'surface loss',
+                           'array loss']
             message = "'metal_type' must be one of {}".format(metal_types)
             raise ValueError(message)
         # add the new metal to the metals list replacing if needed
-        current_name = (metal.split('"')[1] if len(metal.split('"')) > 1 else
-                        metal.split()[1])  # needed if name=None
-        index = 0 if top else 1
-        if top or bottom:
-            old_metal = metals[index]
-            old_name = (old_metal.split('"')[1] if len(old_metal.split('"')) > 1 else
-                        old_metal.split()[1])
-            other_names = []
-            for ind, line in enumerate(metals):
-                if ind != index:
-                    new_name = (line.split('"')[1] if len(line.split('"')) > 1 else
-                                line.split()[1])
-                    other_names.append(new_name)
-            if old_name not in other_names and old_name != current_name:
-                old_metal = old_metal.split()
-                old_metal[2] = str(len(metals) - 2)
-                old_metal[0] = "MET"
-                metals.append(" ".join(old_metal))
-            metals[index] = metal
+        defined_metals = metals[2:]
+        defined_names = []
+        for defined_metal in defined_metals:
+            defined_names.append(shlex.split(defined_metal)[1])
+        if name in defined_names:
+            metal_index = np.where(name == np.array(defined_names))[0][0]
+            metals[metal_index] = metal
         else:
             metals.append(metal)
         # add the metal definitions to the geometry
         metals = os.linesep.join(metals)
         self['geometry']['metals'] = metals
-        # run again if the bottom layer needs to be set as well
+
+    def set_box_cover(self, cover_type, top=False, bottom=False, **kwargs):
+        """
+        Set the Sonnet box cover.
+
+        :param cover_type: type of cover to set (string)
+            Valid types are listed below with any additional keyword arguments that may be
+            used with them.
+           'waveguide load': a waveguide load, useful for modeling infinite arrays
+           'free space': no box cover, an open environment
+           'lossless': default lossless metal for Sonnet
+           'custom' a metal previously defined by define_metal()
+                :keyword name: name of the metal used when it was defined
+        One of top or bottom keywords must be True
+        :param top: set the cover on the top of the box (boolean)
+        :param bottom: set the cover on the bottom of the box (boolean)
+        """
+        # check inputs
+        message = "set 'top', 'bottom', or both to be True"
+        assert top or bottom, message
+        # set top or bottom identifiers
+        location = "TMET" if top else "BMET"
+        location_index = 0 if top else 1
+        run_again = True if top and bottom else False
+        # pull out all the metals
+        metals = self['geometry']['metals'].splitlines()
+        # format metal string
+        if cover_type == 'waveguide load':
+            metal = b.WG_LOAD_FORMAT.format(location=location)
+        elif cover_type == 'free space':
+            metal = b.FREESPACE_FORMAT.format(location=location)
+        elif cover_type == 'lossless':
+            metal = b.LOSSLESS_FORMAT.format(location=location)
+        elif cover_type == 'custom':
+            # check name
+            message = "'name' keyword must be defined for a custom metal"
+            name = kwargs.pop('name', None)
+            assert name is not None, message
+            defined_metals = metals[2:]
+            defined_names = []
+            for defined_metal in defined_metals:
+                defined_names.append(shlex.split(defined_metal)[1])
+            message = "'{}' is not a defined metal".format(name)
+            assert name in defined_names, message
+            # reformat metal string
+            metal_index = np.where(name == np.array(defined_names))[0][0]
+            metal = shlex.split(defined_metals[metal_index])
+            # check type
+            cover_types = ['normal', 'resistor', 'native', 'general', 'sense']
+            cover_keys = ['NOR', 'RES', 'NAT', 'SUP', 'SEN']
+            message = "'{}' must be one of these metal types to put on the cover {}"
+            assert metal[3] in cover_keys, message.format(name, cover_types)
+            metal[0] = location
+            metal = " ".join(metal)
+        else:
+            metal_types = ['waveguide load', 'free space', 'lossless', 'custom']
+            message = "'metal_type' must be one of {}".format(metal_types)
+            raise ValueError(message)
+        # add the metal definition to the geometry
+        metals[location_index] = metal
+        metals = os.linesep.join(metals)
+        self['geometry']['metals'] = metals
+        # run again if setting both top and bottom
         if run_again:
-            self.define_metal(metal_type, name=name, top=False, bottom=True)
+            self.set_box_cover(cover_type, top=False, bottom=True, **kwargs)
 
     def add_dimension(self):
         """Adds a dimension to the simulation geometry."""
@@ -617,8 +628,13 @@ class GeometryProject(Project):
         """Defines a dielectric brick that can be used in the project."""
         raise NotImplementedError
 
-    def define_technology_layer(self):
+    def define_technology_layer(self, layer_type, name, material, fill_type='staircase',
+                                x_min=1, x_max=100, y_min=1, y_max=100, edge_mesh=True,
+                                **kwargs):
         """Defines a technology layer for the project."""
+        conformal_max = 0
+        to_level = 0
+        via_fill_type = "ring"
         raise NotImplementedError
 
     def add_edge_via(self):
@@ -638,7 +654,7 @@ class GeometryProject(Project):
         origin = b.ORIGIN_FORMAT.format(dx=dx, dy=-dy, locked=locked_values[locked])
         self['geometry']['origin'] = origin
 
-    def add_port(self, port_type, number, polygon_id, polygon_index, resistance=0,
+    def add_port(self, port_type, number, x, y, resistance=0,
                  reactance=0, inductance=0, capacitance=0, **kwargs):
         """
         Adds a port to the project.
@@ -685,7 +701,8 @@ class GeometryProject(Project):
         """Adds a component to the project."""
         raise NotImplementedError
 
-    def add_polygons(self):
+    def add_polygons(self, polygons, polygon_type, tech_layer=None, x_min=1,
+                     x_max=100, y_min=1, y_max=100, edge_mesh=True, **kwargs):
         """Adds polygons to the project."""
         raise NotImplementedError
 
