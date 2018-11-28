@@ -82,15 +82,16 @@ class Project(dict):
             yaml.dump(dict(self), file_handle, default_flow_style=False)
         log.debug("configuration saved")
 
-    def run(self, sweep_type, file_path=None, options='-v', external_frequency_file=None):
+    def run(self, analysis_type, file_path=None, options='-v',
+            external_frequency_file=None):
         """
         Run the project simulation.
 
-        :param sweep_type: type of sweep to compute
-            Valid options are 'frequency', 'parameter', or 'optimize'. The sweep
-            corresponding to the sweep_type must have already been added to the project
-            using add_frequency_sweep(), add_parameter_sweep(), or add_optimization().
-            All sweeps of the specified type will be computed.
+        :param analysis_type: all sweeps of the specified type will be computed.
+            Valid options are listed below.
+            'frequency sweep': Runs all the sweeps added by add_frequency_sweep()
+            'parameter sweep': Runs all the sweeps added by add_parameter_sweep()
+            'optimization': Runs all the sweeps added by add_optimization()
         :param file_path: path where the Sonnet file will be saved (optional)
             This parameter is optional if a Sonnet file has already been made and is
             consistent with the current project state.
@@ -100,19 +101,15 @@ class Project(dict):
         :param external_frequency_file: path to the frequency control file (optional)
         """
         # check sweep_type
-        message = "sweep_type must be either 'frequency' or 'parameter'"
-        assert sweep_type in ['frequency', 'parameter', 'optimize'], message
+        message = "'analysis_type' parameter must be in {}"
+        assert analysis_type in b.ANALYSIS_TYPES.keys(), \
+            message.format(list(b.ANALYSIS_TYPES.values()))
         message = "add a sweep to the project before running"
         assert (self['frequency']['sweeps'] != '' or
                 self['parameter_sweeps']['parameter_sweep'] != '' or
                 self['optimization']['optimization_goals'] != ''), message
-        # set sweep type
-        if sweep_type == 'frequency':
-            self['control']['sweep_type'] = "STD"
-        elif sweep_type == 'parameter':
-            self['control']['sweep_type'] = "VARSWP"
-        else:
-            self['control']['sweep_type'] = "OPTIMIZE"
+        # set analysis type
+        self['control']['analysis_type'] = b.ANALYSIS_TYPES[analysis_type]
         # check to make sure there is a project file to run
         if file_path is not None:
             self.make_sonnet_file(file_path)
@@ -124,15 +121,16 @@ class Project(dict):
         if self['sonnet']["sonnet_path"] == '':
             raise ValueError("configure sonnet before running")
         # collect the command to run
-        command = [os.path.join(self['sonnet']["sonnet_path"], "bin", "em "), options,
+        command = [os.path.join(self['sonnet']["sonnet_path"], "bin", "em"), options,
                    self.project_file_path, external_frequency_file]
         command = [element for element in command
                    if (element != '' and element != '-' and element is not None)]
+        log.debug("running a(n) {}".format(analysis_type))
         # run the command
         with psutil.Popen(command, stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE) as process:
             while True:
-                output = process.stdout.readline()
+                output = process.stdout.readline().decode('utf-8')
                 if output == '' and process.poll() is not None:
                     break
                 if output:
@@ -150,8 +148,11 @@ class Project(dict):
         assert os.path.isfile(os.path.join(sonnet_path, 'bin', 'em')), \
             "the sonnet directory has an unrecognizable format"
         self['sonnet']['sonnet_path'] = sonnet_path
+        log.debug("sonnet path set to '{}'".format(sonnet_path))
         self['sonnet']['version'] = version
+        log.debug("sonnet version to '{}'".format(version))
         self['sonnet']['license_id'] = license_id
+        log.debug("license id set to '{}'".format(license_id))
 
     def add_frequency_sweep(self, sweep_type, **kwargs):
         """
@@ -270,10 +271,12 @@ class Project(dict):
             raise ValueError(message)
         # add the sweep to the project
         self['frequency']['sweeps'] += sweep + os.linesep
+        log.debug("{} frequency sweep added".format(sweep_type))
 
     def clear_frequency_sweeps(self):
         """Removes all added frequency sweeps from the project."""
         self['frequency']['sweeps'] = ''
+        log.debug("all frequency sweeps removed")
 
     def add_parameter_sweep(self):
         """Add a parameter sweep to the analysis for the project."""
@@ -282,6 +285,7 @@ class Project(dict):
     def clear_parameter_sweeps(self):
         """Removes all added parameter sweeps from the project."""
         self['parameter_sweep']['parameter_sweep'] = ''
+        log.debug("all parameter sweeps removed")
 
     def add_optimization(self):
         """Add an optimization to the analysis for the project."""
@@ -291,21 +295,7 @@ class Project(dict):
         """Removes all added optimizations from the project."""
         self['optimization']['optimization_parameters'] = ''
         self['optimization']['optimization_goals'] = ''
-
-    def select_analysis(self, analysis_type):
-        """
-        Select what kind of analysis to run.
-
-        :param analysis_type:
-            Valid options are listed below
-            'frequency sweep': Runs all the sweeps added by add_frequency_sweep()
-            'parameter sweep': Runs all the sweeps added by add_parameter_sweep()
-            'optimization': Runs all the sweeps added by add_optimization()
-        """
-        message = "'analysis_type' parameter must be in {}"
-        assert analysis_type in b.ANALYSIS_TYPES.keys(), \
-            message.format(list(b.ANALYSIS_TYPES.values()))
-        self['control']['analysis_type'] = b.ANALYSIS_TYPES[analysis_type]
+        log.debug("all optimizations removed")
 
     def set_units(self, **kwargs):
         """
@@ -334,6 +324,7 @@ class Project(dict):
         # add unit to the project
         for key, value in kwargs.items():
             self['dimensions'][key] = b.UNITS[key][value]
+            log.debug("set {} unit to {}".format(key, b.UNITS[key][value]))
 
 
 class GeometryProject(Project):
@@ -400,6 +391,8 @@ class GeometryProject(Project):
             raise NotImplementedError
         # add the reference plane to the geometry
         self['geometry']['reference_planes'] += plane + os.linesep
+        log.debug("{}, {} reference plane added with a length of"
+                  .format(position, plane_type, length))
 
     def define_metal(self, metal_type, name, **kwargs):
         """
@@ -480,6 +473,7 @@ class GeometryProject(Project):
         # add the metal definitions to the geometry
         metals = os.linesep.join(metals)
         self['geometry']['metals'] = metals
+        log.debug("{} {} metal defined".format(metal_type, name))
 
     def set_box_cover(self, cover_type, top=False, bottom=False, **kwargs):
         """
@@ -541,6 +535,8 @@ class GeometryProject(Project):
         metals[location_index] = metal
         metals = os.linesep.join(metals)
         self['geometry']['metals'] = metals
+        log.debug("{} box cover added on the {}"
+                  .format(cover_type, 'top' if top else 'bottom'))
         # run again if setting both top and bottom
         if run_again:
             self.set_box_cover(cover_type, top=False, bottom=True, **kwargs)
@@ -626,6 +622,7 @@ class GeometryProject(Project):
         # add the new dielectric layer to the geometry
         layers = os.linesep.join(layers)
         self['geometry']['layers'] = layers
+        log.debug("{} dielectric added at level {}".format(name, level))
 
     def add_variable(self, box_size_x=False, box_size_y=False):
         """Adds a variable to the project."""
@@ -645,8 +642,10 @@ class GeometryProject(Project):
         """
         self['geometry']['box_width_x'] = float(box_width_x)
         self['geometry']['box_width_y'] = float(box_width_y)
+        log.debug("box size set to ({}, {})".format(box_width_x, box_width_y))
         self['geometry']['x_cells2'] = 2 * int(x_cells)
         self['geometry']['y_cells2'] = 2 * int(y_cells)
+        log.debug("number of cells set to ({}, {})".format(int(x_cells), int(y_cells)))
 
     def define_dielectric_bricks(self):
         """Defines a dielectric brick that can be used in the project."""
@@ -762,6 +761,8 @@ class GeometryProject(Project):
             current_layers.append(technology_layer)
         new_layers = os.linesep.join(current_layers)
         self['geometry']['technology_layers'] = new_layers
+        log.debug("{} {} technology layer added on level {} with {}"
+                  .format(layer_type, name, level, material))
 
     def add_edge_via(self):
         """Adds an edge via to the project."""
@@ -779,6 +780,8 @@ class GeometryProject(Project):
         # dy is backwards for some reason
         origin = b.ORIGIN_FORMAT.format(dx=dx, dy=-dy, locked=locked_values[locked])
         self['geometry']['origin'] = origin
+        log.debug("origin set to ({}, {}) and is{} locked"
+                  .format(dx, dy, " not" if not locked else ""))
 
     def add_port(self, port_type, number, x, y, resistance=0,
                  reactance=0, inductance=0, capacitance=0, **kwargs):
@@ -821,7 +824,7 @@ class GeometryProject(Project):
         assert isinstance(number, int) and number != 0, message
         if port_type == "standard":
             independent = kwargs.pop("independent", False)
-            on_wall = (x ==0 or y == 0 or x == self["geometry"]["box_width_x"] or
+            on_wall = (x == 0 or y == 0 or x == self["geometry"]["box_width_x"] or
                        y == self["geometry"]["box_width_y"])
             message = "a standard port must be on the box wall to be independent"
             assert (independent and on_wall) or not independent, message
@@ -866,7 +869,7 @@ class GeometryProject(Project):
         # set the debug_id equal to the port id
         polygon = polygons[polygon_index].splitlines()
         condition = (not polygon[0] or polygon[0][:3] == 'MET' or
-                     polygon[0][:3] == 'BRI'  or polygon[0][:3] == 'VIA')
+                     polygon[0][:3] == 'BRI' or polygon[0][:3] == 'VIA')
         index = 1 if condition else 0
         level = polygon[index]
         level = level.split()
@@ -902,6 +905,9 @@ class GeometryProject(Project):
                        "file_id": file_id, "polygon_index": min_index,
                        "x": new_position[0], "y": new_position[1]}
         self['geometry']['ports'] += b.PORT_FORMAT.format(**port_format)
+        log.debug("{} port {} added at ({}, {}) with parameters ({}, {}, {}, {})"
+                  .format(port_type, number, new_position[0], new_position[1], resistance,
+                          reactance, inductance, capacitance))
 
     def add_calibration_group(self):
         """Adds a calibration group to the project."""
@@ -1036,6 +1042,7 @@ class GeometryProject(Project):
                 polygon=polygon_string)
             self['geometry']['polygons'] += polygons_string
             self['geometry']['n_polygons'] += 1
+            log.debug("polygon added")
 
     def add_output_file(self, file_type, output_folder=None, deembed=True,
                         include_abs=True, include_comments=True, high_precision=True,
@@ -1104,6 +1111,7 @@ class GeometryProject(Project):
                                                ports=ports)
         # add the output file to the project
         self['output_file']['response_data'] += output + os.linesep
+        log.debug("{} output file added here '{}'".format(file_type, output_folder))
 
 
 class NetlistProject(Project):
