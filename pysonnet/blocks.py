@@ -105,6 +105,11 @@ NUM {n_polygons}
 {polygons}
 END GEO
 """
+COVER_TYPES = {'normal': "NOR", 'resistor': "RES", 'native': "NAT", 'general': "SUP",
+               'sense': "SEN"}
+VIA_TYPES = {'volume loss': "VOL", 'surface loss': "SFC", 'array loss': "ARR"}
+METAL_TYPES = {'normal': "NOR", 'resistor': "RES", 'native': "NAT", 'general': "SUP",
+               'sense': "SEN", 'thick metal': "TMM", 'rough metal': "RUF"}
 WG_LOAD_FORMAT = '{location} "WG Load" 0 WGLOAD'
 FREESPACE_FORMAT = '{location} "Free Space" 0 FREESPACE 376.7303136 0 0 0'
 LOSSLESS_FORMAT = '{location} "Lossless" 0 SUP 0 0 0 0'
@@ -120,18 +125,31 @@ POLY {file_id} 1
 {polygon_index}
 {number} {resistance} {reactance} {inductance} {capacitance} {x} {y} {ref_type} {length}
 """
+PORT_TYPES = {"standard": "STD", "auto-grounded": "AGND", "co-calibrated": "CUP"}
 DIAGONAL_FORMAT = "DIAGALLOWED {allowed}"
 TECHLAYER_FORMAT = """\
 TECHLAY {layer_type} "{name}"  <UNSPECIFIED> -1 0
-{type}
+{poly_type}
 {level}
 {to_level}
 END
 END
 """
-LEVEL_FORMAT = ("{level} {n_vertices} {metal} {fill_type} 0 {x_min} {y_min} {x_max} "
+POLYGON_FORMAT = """\
+{polygon_type}
+{level}
+{to_level}
+{tech_layer}
+{polygon}
+END
+"""
+LAYER_TYPES = {'metal': "METAL", 'via': "VIA", 'dielectric brick': "BRICK"}
+POLYGON_TYPES = {'metal': "", 'via': "VIA POLYGON", 'dielectric brick': "BRI POL"}
+TECHLAYER_NAME_FORMAT = 'TLAYNAM "{name}" {inherit}'
+LEVEL_FORMAT = ("{level} {n_vertices} {material} {fill_type} 0 {x_min} {y_min} {x_max} "
                 "{y_max} {conformal_max} 0 0 {edge_mesh}")
 TO_LEVEL_FORMAT = "TOLEVEL {to_level} {via_fill_type} {pads}"
+FILL_TYPES = {'staircase': 'N', 'diagonal': 'T', 'conformal': 'V'}
 
 # frequency block
 FREQUENCY = """\
@@ -226,7 +244,9 @@ MAIN {netlist_name}
 {subdivider_locations}
 END SUBDIV
 """
-REFERENCE_PLANES_FORMAT = "DRP1 {position} {type} {length}"
+REFERENCE_PLANES_FORMAT = "DRP1 {position} {plane_type} {length}"
+REFERENCE_PLANE_TYPES = {"fixed": "FIX", "FIX": "FIX", "linked": "LINK", "LINK": "LINK"}
+
 
 # quick start guide block for a geometry project
 QUICK_START_GUIDE = """\

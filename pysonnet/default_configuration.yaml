@@ -44,7 +44,7 @@ frequency:
   sweeps: ''
 control:
   sweep_type: ''
-  options: ''
+  options: '-d'
   subsections_per_wavelength: 20
   edge_checking: ''
   subsectioning_frequency: ''

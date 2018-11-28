@@ -345,6 +345,12 @@ class GeometryProject(Project):
         with open(file_path, "w") as file_handle:
             file_handle.write(file_string)
         self.project_file_path = file_path
+        folder = os.path.join(os.path.dirname(self.project_file_path), 'sondata')
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+        subfolder = os.path.join(folder,  os.path.basename(file_path).split('.')[0])
+        if not os.path.isdir(subfolder):
+            os.mkdir(subfolder)
         log.debug("geometry project saved")
 
     def add_reference_plane(self, position, plane_type='fixed', length=None):
@@ -362,20 +368,19 @@ class GeometryProject(Project):
         message = "valid values for the position are 'left', 'right', 'top', and 'bottom'"
         assert position in ['left', 'right', 'top', 'bottom'], message
         # check type parameter
-        types = {"fixed": "FIX", "FIX": "FIX", "linked": "LINK", "LINK": "LINK"}
         message = "valid values for the plane_type are 'fixed' and 'linked'"
-        assert plane_type in types.keys(), message
+        assert plane_type in b.REFERENCE_PLANE_TYPES.keys(), message
         # choose type
-        if types[plane_type] == "FIX":
+        if b.REFERENCE_PLANE_TYPES[plane_type] == "FIX":
             # check length
             message = "length parameter must be defined for a fixed-type reference plane"
             assert length is not None, message
             message = "length parameter must be a float or an int"
             assert isinstance(length, (float, int)), message
             # format the plane
-            plane = b.REFERENCE_PLANES_FORMAT.format(position=position,
-                                                     type=types[plane_type],
-                                                     length=length)
+            plane = b.REFERENCE_PLANES_FORMAT.format(
+                position=position, plane_type=b.REFERENCE_PLANE_TYPES[plane_type],
+                length=length)
         else:
             raise NotImplementedError
         # add the reference plane to the geometry
@@ -404,7 +409,12 @@ class GeometryProject(Project):
             'surface loss': only for vias
             'array loss': only for vias
         :param name: metal name that must be unique in the project (string)
+            The name can not be 'lossless' as this is reserved for the default lossless
+            Sonnet metal.
         """
+        # check name parameter
+        message = "the name 'lossless' is reserved for the default Sonnet lossless metal"
+        assert name != 'lossless', message
         # determine the pattern id and set the location string
         metals = self['geometry']['metals'].splitlines()
         pattern_id = len(metals) - 2
@@ -503,10 +513,9 @@ class GeometryProject(Project):
             metal_index = np.where(name == np.array(defined_names))[0][0]
             metal = shlex.split(defined_metals[metal_index])
             # check type
-            cover_types = ['normal', 'resistor', 'native', 'general', 'sense']
-            cover_keys = ['NOR', 'RES', 'NAT', 'SUP', 'SEN']
             message = "'{}' must be one of these metal types to put on the cover {}"
-            assert metal[3] in cover_keys, message.format(name, cover_types)
+            assert metal[3] in b.COVER_TYPES.values(), \
+                message.format(name, b.COVER_TYPES.keys())
             metal[0] = location
             metal = " ".join(metal)
         else:
@@ -575,7 +584,7 @@ class GeometryProject(Project):
                                             xy_mu=1, xy_e_loss=0, xy_m_loss=0, xy_sigma=0,
                                             z_partitions=0, z_epsilon="", z_mu="",
                                             z_e_loss="", z_m_loss="", z_sigma="")
-            layers += unnamed * (level + 1 - len(layers))
+            layers += [unnamed] * (level + 1 - len(layers))
         # add the new number of metal levels to the project
         self['geometry']['n_metal_levels'] = len(layers) - 1
         # define xy layer parameters
@@ -628,14 +637,116 @@ class GeometryProject(Project):
         """Defines a dielectric brick that can be used in the project."""
         raise NotImplementedError
 
-    def define_technology_layer(self, layer_type, name, material, fill_type='staircase',
-                                x_min=1, x_max=100, y_min=1, y_max=100, edge_mesh=True,
-                                **kwargs):
-        """Defines a technology layer for the project."""
-        conformal_max = 0
-        to_level = 0
-        via_fill_type = "ring"
-        raise NotImplementedError
+    def define_technology_layer(self, layer_type, name, level, material,
+                                fill_type='staircase', edge_mesh=True, **kwargs):
+        """
+        Defines a technology layer for the project.
+
+        :param layer_type: type of technology layer (string)
+            Valid types are listed below with any additional keyword arguments that may be
+            used with them.
+            'metal': a metal technology layer
+            'via': a via technology layer
+                :keyword to_level: the level to which the polygon extends (integer)
+                :keyword via_fill_type: meshing used for the via polygon (string)
+                    Valid options are 'ring' (default), 'center', 'vertices', 'solid',
+                    and 'bar'.
+                :keyword pads: metal pads over the via, default is False (boolean)
+            'dielectric brick': a dielectric brick technology layer
+        :param name: unique name of the layer (string)
+        :param level: level of the layer (integer)
+        :param material: layer material name (string)
+            The name corresponds to the name used in define_metal() or
+            define_dielectric_brick() for metals and vias or dielectric bricks
+            respectively. The name can also be 'lossless' for metals and vias or 'air' for
+            dielectric bricks.
+        :param fill_type: layer fill type (string)
+            Valid types are listed below with any additional keyword arguments that may be
+            used with them.
+            'staircase': a staircase mesh (default)
+                The default minimum is 1 and maximum is 100 for these keywords.
+                :keyword x_min: minimum subsection size in the x direction (integer)
+                :keyword x_max: maximum subsection size in the x direction (integer)
+                :keyword y_min: minimum subsection size in the y direction (integer)
+                :keyword y_max: maximum subsection size in the y direction (integer)
+            'diagonal': a diagonal mesh
+                The default minimum is 1 and maximum is 100 for these keywords.
+                :keyword x_min: minimum subsection size in the x direction (integer)
+                :keyword x_max: maximum subsection size in the x direction (integer)
+                :keyword y_min: minimum subsection size in the y direction (integer)
+                :keyword y_max: maximum subsection size in the y direction (integer)
+            'conformal': a conformal mesh
+                :keyword conformal_max: maximum length for a conformal mesh subsection
+                    If it is 0 or not specified, the length is computed by Sonnet.
+        :param edge_mesh: use edge meshing (boolean)
+        """
+        # check inputs
+        message = "'layer type' parameter must be one of {}"
+        assert layer_type in b.LAYER_TYPES.keys(), \
+            message.format(list(b.LAYER_TYPES.keys()))
+        message = "'fill_type' parameter must be one of {}"
+        assert fill_type in b.FILL_TYPES.keys(), message.format(list(b.FILL_TYPES.keys()))
+        # determine the material index
+        if layer_type == 'metal' or layer_type == 'via':
+            if material == "lossless":
+                material_index = -1
+            else:
+                metals = self['geometry']['metals'].splitlines()
+                defined_metals = metals[2:]
+                defined_names = []
+                for defined_metal in defined_metals:
+                    defined_names.append(shlex.split(defined_metal)[1])
+                material_index = np.where(material == np.array(defined_names))[0][0]
+                # check that we have a valid material
+                material_value = shlex.split(defined_metals[material_index])[3]
+                message = ("for a '{}' the 'material' parameter must be one of these "
+                           "types from define_metal() {}")
+                if layer_type == 'metal':
+                    assert material_value in b.METAL_TYPES.values(), \
+                        message.format('metal', list(b.METAL_TYPES.keys()))
+                else:
+                    assert material_value in b.VIA_TYPES.values(), \
+                        message.format('via', list(b.VIA_TYPES.keys()))
+        else:
+            raise NotImplementedError
+        # set the level format
+        level_format = {"level": level, "n_vertices": 0, "material": material_index,
+                        "fill_type": b.FILL_TYPES[fill_type],
+                        "x_min": kwargs.pop("x_min", 1), "y_min": kwargs.pop("y_min", 1),
+                        "x_max": kwargs.pop("x_max", 100),
+                        "y_max": kwargs.pop("y_max", 100),
+                        "conformal_max": kwargs.pop("conformal_max", 0),
+                        "edge_mesh": "Y" if edge_mesh else "N"}
+        level_string = b.LEVEL_FORMAT.format(**level_format)
+        # set the via format
+        if layer_type == 'via':
+            message = "'to_level' keyword must be used for a via technology layer"
+            assert 'to_level' in kwargs.keys(), message
+            pads = kwargs.pop('pads', False)
+            to_format = {"to_level": kwargs['to_level'],
+                         'via_fill_type': kwargs.pop('via_fill_type', 'ring').upper(),
+                         'pads': "COVERS" if pads else "NOCOVERS"}
+            to_level_string = b.TO_LEVEL_FORMAT.format(**to_format)
+        else:
+            to_level_string = ''
+        # combine all the formats
+        full_format = {"layer_type": b.LAYER_TYPES[layer_type], "name": name,
+                       "poly_type": b.POLYGON_TYPES[layer_type],
+                       "level": level_string, "to_level": to_level_string}
+        technology_layer = b.TECHLAYER_FORMAT.format(**full_format)
+        # add the technology layer to the project replacing if necessary
+        current_layers = self['geometry']['technology_layers']
+        current_layers = ['TECHLAY' + c for c in current_layers.split('TECHLAY') if c]
+        current_names = []
+        for layer in current_layers:
+            current_names.append(shlex.split(layer)[2])
+        if name in current_names:
+            layer_index = np.where(name == np.array(current_names))[0][0]
+            current_layers[layer_index] = technology_layer
+        else:
+            current_layers.append(technology_layer)
+        new_layers = os.linesep.join(current_layers)
+        self['geometry']['technology_layers'] = new_layers
 
     def add_edge_via(self):
         """Adds an edge via to the project."""
@@ -664,34 +775,118 @@ class GeometryProject(Project):
             be needed for each.
             'standard': a standard Sonnet port. (string)
                 These keywords are only needed if the port is an independent port.
-                :keyword diagonal
-                :keyword fixed_reference_plane
-                :keyword length
+                :keyword independent: the port is independent, default False (boolean)
+                    Only works if the port is on the box wall
+                :keyword diagonal: allow the reference plane to be diagonal (boolean)
+                    This keyword only works if the port is a box wall port and
+                    independent.
+                :keyword fixed_reference_plane: is the reference plane fixed (boolean)
+                :keyword length: calibration length (float)
             'auto-grounded': a grounding port used in the interior of a geometry (string)
                 These keywords are required.
-                :keyword fixed_reference_plane
-                :keyword length
+                :keyword fixed_reference_plane: is the reference plane fixed (boolean)
+                :keyword length: calibration length (float)
             'co-calibrated': a port that is part of a calibration group (string)
-                These keywords are required.
-                :keyword fixed_reference_plane
-                :keyword length
-                :keyword group_id
+                :keyword independent: the port is independent, default False (boolean)
+                :keyword fixed_reference_plane: is the reference plane fixed (boolean)
+                :keyword length: calibration length (float)
+                :keyword group_id: co-calibration group id, automatic by default (string)
         :param number: port number (non-zero integer)
-        :param polygon_id: polygon id number
-        :param polygon_index: index of the first point defining the port edge (integer)
+        :param x: x position of the port (float)
+        :param y: y position of the port (float)
         :param resistance: resistance of the port in ohms (float)
         :param reactance: reactance of the port in ohms (float)
         :param inductance: inductance of the port in nH (float)
         :param capacitance: capacitance of the port in pF (float)
-        :keyword diagonal: allow the reference plane to be diagonal (boolean)
-            This keyword only works if the port is a box wall port and independent.
-        :keyword fixed_reference_plane: is the reference plane fixed (boolean)
-        :keyword length: calibration length (float)
-            When fixed_reference_plane=True, this parameter is the length of the reference
-            plane.
-        :keyword group_id: co-calibration group id (string)
         """
-        raise NotImplementedError
+        # check inputs
+        message = "'port_type' parameter must be one of {}"
+        assert port_type in b.PORT_TYPES.keys(), message.format(list(b.PORT_TYPES.keys()))
+        message = "'number' parameter can not be 0 and must be an integer"
+        assert isinstance(number, int) and number != 0, message
+        if port_type == "standard":
+            independent = kwargs.pop("independent", False)
+            on_wall = (x ==0 or y == 0 or x == self["geometry"]["box_width_x"] or
+                       y == self["geometry"]["box_width_y"])
+            message = "a standard port must be on the box wall to be independent"
+            assert (independent and on_wall) or not independent, message
+        elif port_type == "auto-grounded":
+            independent = kwargs.pop("independent", True)
+            message = "auto-grounded ports are always independent"
+            assert independent, message
+        else:  # co-calibrated
+            independent = kwargs.pop("independent", False)
+        # count the number of ports already made
+        ports = ['POR1' + c for c in self['geometry']['ports'].split('POR1') if c]
+        n_ports = len(ports)
+        # get all the file_ids from the ports
+        file_ids = []
+        for port in ports:
+            file_ids.append(port.split("POLY")[1].split()[0])
+        # find the right polygon and vertex
+        polygons = [c + "END" for c in self['geometry']['polygons'].split("END")
+                    if c.strip()]
+        min_value = np.inf
+        min_index = 0
+        polygon_index = 0
+        position = np.array([x, y])
+        new_position = position
+        for index, polygon in enumerate(polygons):
+            generator = (r for r in polygon.splitlines() if r and not r[0] in ('T', 'E'))
+            polygon = np.genfromtxt(generator, skip_header=1)
+            distance = np.linalg.norm(polygon - position, axis=1)
+            trial_index = np.argmin(np.abs(distance))
+            trial_value = np.abs(distance[trial_index])
+            if trial_value < min_value:
+                min_value = trial_value
+                min_index = trial_index
+                polygon_index = index
+                lower = polygon[min_index - 1, :]
+                upper = polygon[(min_index + 1) % (polygon.shape[0] - 1), :]
+                if np.linalg.norm(lower - position) < np.linalg.norm(upper - position):
+                    new_position = (lower + polygon[min_index, :]) / 2
+                    min_index = (min_index - 1) % (polygon.shape[0] - 1)
+                else:
+                    new_position = (upper + polygon[min_index, :]) / 2
+        # set the debug_id equal to the port id
+        polygon = polygons[polygon_index].splitlines()
+        condition = (not polygon[0] or polygon[0][:3] == 'MET' or
+                     polygon[0][:3] == 'BRI'  or polygon[0][:3] == 'VIA')
+        index = 1 if condition else 0
+        level = polygon[index]
+        level = level.split()
+        if level[4] not in file_ids:
+            file_id = str(n_ports + 1001)
+            level[4] = file_id
+            level = " ".join(level)
+            polygon[index] = level
+            polygon = os.linesep.join(polygon)
+            polygons[polygon_index] = polygon
+            polygons = os.linesep.join(polygons)
+            self['geometry']['polygons'] = polygons
+        else:
+            file_id = level[4]
+        # set the port format string
+        diagonal = kwargs.pop("diagonal", None)
+        diagonal_string = b.DIAGONAL_FORMAT.format(allowed="Y" if diagonal else "N")
+        if independent:
+            fixed_reference_plane = kwargs.pop("fixed_reference_plane", False)
+            reference_type = "NONE" if fixed_reference_plane else "FIX"
+            length = kwargs.pop("length", None)
+            length_string = 0 if length is None else length
+        else:
+            reference_type = ""
+            length_string = ""
+        port_format = {"port_type": b.PORT_TYPES[port_type],
+                       "group_id": "" if port_type != 'co-calibrated'
+                       else kwargs.pop("group_id", "Auto"),
+                       "diagonal": diagonal_string if diagonal is not None else "",
+                       "number": number, "resistance": resistance, "reactance": reactance,
+                       "inductance": inductance, "capacitance": capacitance,
+                       "ref_type": reference_type, "length": length_string,
+                       "file_id": file_id, "polygon_index": min_index,
+                       "x": new_position[0], "y": new_position[1]}
+        self['geometry']['ports'] += b.PORT_FORMAT.format(**port_format)
 
     def add_calibration_group(self):
         """Adds a calibration group to the project."""
@@ -701,10 +896,131 @@ class GeometryProject(Project):
         """Adds a component to the project."""
         raise NotImplementedError
 
-    def add_polygons(self, polygons, polygon_type, tech_layer=None, x_min=1,
-                     x_max=100, y_min=1, y_max=100, edge_mesh=True, **kwargs):
-        """Adds polygons to the project."""
-        raise NotImplementedError
+    def add_polygons(self, polygon_type, polygons, tech_layer=None, **kwargs):
+        """
+        Adds polygons to the project.
+
+        :param polygon_type: type of polygon to add (string)
+            Valid options are listed below with the additional keyword arguments that may
+            be needed for each.
+            'metal': a metal polygon
+            'via': a via polygon
+                :keyword to_level: the level to which the polygon extends (integer)
+                :keyword via_fill_type: meshing used for the via polygon (string)
+                    Valid options are 'ring' (default), 'center', 'vertices', 'solid',
+                    and 'bar'.
+                :keyword pads: metal pads over the via, default is False (boolean)
+            'dielectric brick': a dielectric brick polygon
+        :param polygons: a list of N x 2 numpy arrays that define the polygons
+        :param tech_layer: the technology layer name (string)
+            The name must correspond to a name used in define_technology_layer(). The
+            following keywords can be used with the tech_layer keyword.
+            :keyword inherit: inherit the techlayer properties (boolean)
+            If tech_layer is not specified or inherit=False, the keywords below can be
+            used to determine the polygon properties
+            :keyword level: level of the layer (integer)
+            :keyword material: layer material name (string)
+            The name corresponds to the name used in define_metal() or
+            define_dielectric_brick() for metals and vias or dielectric bricks
+            respectively. The name can also be 'lossless' for metals and vias or 'air' for
+            dielectric bricks.
+            :keyword fill_type: layer fill type (string)
+                Valid types are listed below with any additional keyword arguments that
+                may be used with them.
+                'staircase': a staircase mesh (default)
+                    The default minimum is 1 and maximum is 100 for these keywords.
+                    :keyword x_min: minimum subsection size in the x direction (integer)
+                    :keyword x_max: maximum subsection size in the x direction (integer)
+                    :keyword y_min: minimum subsection size in the y direction (integer)
+                    :keyword y_max: maximum subsection size in the y direction (integer)
+                'diagonal': a diagonal mesh
+                    The default minimum is 1 and maximum is 100 for these keywords.
+                    :keyword x_min: minimum subsection size in the x direction (integer)
+                    :keyword x_max: maximum subsection size in the x direction (integer)
+                    :keyword y_min: minimum subsection size in the y direction (integer)
+                    :keyword y_max: maximum subsection size in the y direction (integer)
+                'conformal': a conformal mesh
+                    :keyword conformal_max: maximum length for a conformal mesh subsection
+                        If it is 0 or not specified, the length is computed by Sonnet.
+            :keyword edge_mesh: use edge meshing (boolean)
+        """
+        # check inputs
+        message = "'polygon type' parameter must be one of {}"
+        assert polygon_type in b.POLYGON_TYPES.keys(), \
+            message.format(list(b.POLYGON_TYPES.keys()))
+        if tech_layer is None:
+            message = "'{}' keyword must be used if 'tech_layer' is not specified"
+            assert 'level' in kwargs.keys(), message.format('level')
+            assert 'material' in kwargs.keys(), message.format('material')
+        # set up the level format for the new polygons
+        level_format = {"level": kwargs.pop("level", 1),
+                        "fill_type": b.FILL_TYPES[kwargs.pop("fill_type", "staircase")],
+                        "x_min": kwargs.pop("x_min", 1),
+                        "y_min": kwargs.pop("y_min", 1),
+                        "x_max": kwargs.pop("x_max", 100),
+                        "y_max": kwargs.pop("y_max", 100),
+                        "conformal_max": kwargs.pop("conformal_max", 0),
+                        "edge_mesh": "Y" if kwargs.pop("edge_mesh", True) else "N"}
+        name = kwargs.pop("material", "lossless")
+        condition = (name == 'lossless' and (polygon_type == 'metal' or
+                                             polygon_type == 'via') or
+                     name == 'air' and polygon_type == 'dielectric brick')
+        if condition:
+            metal_index = -1
+        else:
+            defined_metals = self['geometry']['metals'].splitlines()[2:]
+            defined_names = []
+            for defined_metal in defined_metals:
+                defined_names.append(shlex.split(defined_metal)[1])
+            metal_index = np.where(name == np.array(defined_names))[0][0]
+            # check that we have a valid material
+            material_value = shlex.split(defined_metals[metal_index])[3]
+            message = ("for a '{}' the 'material' parameter must be one of these "
+                       "types from define_metal() {}")
+            if polygon_type == 'metal':
+                assert material_value in b.METAL_TYPES.values(), \
+                    message.format('metal', list(b.METAL_TYPES.keys()))
+            else:
+                assert material_value in b.VIA_TYPES.values(), \
+                    message.format('via', list(b.VIA_TYPES.keys()))
+        level_format['material'] = metal_index
+        # set up the to_level format for the new polygons
+        if polygon_type == 'via':
+            message = "'{}' keyword argument is required for via polygons"
+            assert "to_level" in kwargs.keys(), message.format('to_level')
+            via_fill_type = kwargs.pop("via_fill_type", "ring").upper()
+            pads = kwargs.pop("pads", False)
+            to_level_string = b.TO_LEVEL_FORMAT.format(
+                to_level=kwargs["to_level"], via_fill_type=via_fill_type,
+                pads="COVERS" if pads else "NOCOVERS")
+        else:
+            to_level_string = ""
+        # get the technology layer format for the new polygons
+        if tech_layer is not None:
+            inherit = kwargs.pop("inherit", True)
+            tech_layer_string = b.TECHLAYER_NAME_FORMAT.format(name=tech_layer,
+                                                               inherit="INH"
+                                                               if inherit else "NOH")
+        else:
+            tech_layer_string = ''
+        # add each polygon to the project
+        for index, polygon in enumerate(polygons):
+            # add the last vertex to the end of each polygon if it isn't there
+            if np.any(polygon[0, :] != polygon[-1, :]):
+                polygon = np.vstack([polygon, polygon[0, :]])
+            # update the level format
+            level_format['n_vertices'] = polygon.shape[0]
+            # add the polygon to the project
+            level_string = b.LEVEL_FORMAT.format(**level_format)
+            polygon_string = ''
+            for vertex in polygon:
+                polygon_string += "{:.8f} {:.8f}".format(*vertex) + os.linesep
+            polygons_string = b.POLYGON_FORMAT.format(
+                polygon_type=b.POLYGON_TYPES[polygon_type], level=level_string,
+                to_level=to_level_string, tech_layer=tech_layer_string,
+                polygon=polygon_string)
+            self['geometry']['polygons'] += polygons_string
+            self['geometry']['n_polygons'] += 1
 
     def add_output_file(self, file_type, output_folder=None, deembed=True,
                         include_abs=True, include_comments=True, high_precision=True,
@@ -798,6 +1114,12 @@ class NetlistProject(Project):
         with open(file_path, "w") as file_handle:
             file_handle.write(file_string)
         self.project_file_path = file_path
+        folder = os.path.join(os.path.dirname(self.project_file_path), 'sondata')
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+        subfolder = os.path.join(folder, os.path.basename(file_path).split('.')[0])
+        if not os.path.isdir(subfolder):
+            os.mkdir(subfolder)
         log.debug("netlist project saved")
 
     def create_circuit(self):
