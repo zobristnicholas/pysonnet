@@ -187,7 +187,8 @@ END CONTROL
 """
 ANALYSIS_TYPES = {"frequency sweep": "STD", "parameter sweep": "VARSWP",
                   "optimization": "OPTIMIZE"}
-
+OPTION_TYPES = {"current_density": "j", "frequency_cache": "A", "memory_save": "m",
+                "box_resonance": "b", "deembed": "d"}
 # optimization block
 OPTIMIZATION = """\
 OPT

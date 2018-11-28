@@ -82,13 +82,59 @@ class Project(dict):
             yaml.dump(dict(self), file_handle, default_flow_style=False)
         log.debug("configuration saved")
 
-    def run(self, analysis_type, file_path=None, options='-v',
+    def set_analysis(self, analysis_type):
+        """
+        Set what kind of analysis to run.
+         :param analysis_type:
+            Valid options are listed below
+            'frequency sweep': Runs all the sweeps added by add_frequency_sweep()
+            'parameter sweep': Runs all the sweeps added by add_parameter_sweep()
+            'optimization': Runs all the sweeps added by add_optimization()
+        """
+        message = "'analysis_type' parameter must be in {}"
+        assert analysis_type in b.ANALYSIS_TYPES.keys(), \
+            message.format(list(b.ANALYSIS_TYPES.values()))
+        self['control']['analysis_type'] = b.ANALYSIS_TYPES[analysis_type]
+
+    def set_options(self, current_density=False, frequency_cache=False,
+                    memory_save=False, box_resonance=False, deembed=True,
+                    q_accuracy=False, custom=""):
+        """
+        Set the Sonnet options. Old options are overridden.
+
+        :param current_density: compute the current density (boolean)
+        :param frequency_cache: multi-frequency caching (boolean)
+        :param memory_save: memory saver (boolean)
+        :param box_resonance: box resonance detection (boolean)
+        :param deembed: deembeds the project ports (boolean)
+        :param q_accuracy: accurate line widths for resonators (boolean)
+        :param custom: custom options for sonnet (string)
+        """
+        # add the main options to a string
+        options_dict = {"current_density": current_density,
+                        "frequency_cache": frequency_cache, "memory_save": memory_save,
+                        "box_resonance": box_resonance, "deembed": deembed}
+        options = "-"
+        for key, value in options_dict.items():
+            if value:
+                log.debug("{} option selected".format(key))
+                options += b.OPTION_TYPES[key]
+        options += custom
+        log.debug("'{}' custom option selected")
+        # add the options to the project
+        self['control']['options'] = options
+        # add other options
+        self['control']['q_accuracy'] = "Y" if q_accuracy else "N"
+        log.debug("q factor accuracy {}".format("on" if q_accuracy else "off"))
+
+    def run(self, analysis_type=None, file_path=None, options='-v',
             external_frequency_file=None):
         """
         Run the project simulation.
 
         :param analysis_type: all sweeps of the specified type will be computed.
-            Valid options are listed below.
+            If it is not specified, it must have been set previously with
+            set_analysis(). Valid options are listed below.
             'frequency sweep': Runs all the sweeps added by add_frequency_sweep()
             'parameter sweep': Runs all the sweeps added by add_parameter_sweep()
             'optimization': Runs all the sweeps added by add_optimization()
@@ -100,10 +146,12 @@ class Project(dict):
             is turned on by default and the output is sent to the program log.
         :param external_frequency_file: path to the frequency control file (optional)
         """
-        # check sweep_type
-        message = "'analysis_type' parameter must be in {}"
-        assert analysis_type in b.ANALYSIS_TYPES.keys(), \
-            message.format(list(b.ANALYSIS_TYPES.values()))
+        # check analysis_type
+        if analysis_type is not None:
+            self.set_analysis(analysis_type)
+        else:
+            message = "an analysis has not been selected yet"
+            assert self['control']['analysis_type'], message
         message = "add a sweep to the project before running"
         assert (self['frequency']['sweeps'] != '' or
                 self['parameter_sweeps']['parameter_sweep'] != '' or
