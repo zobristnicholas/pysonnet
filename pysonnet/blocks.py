@@ -170,7 +170,7 @@ ABS_MAX_FORMAT = "ABS_FMAX NET= {s_parameter} {f1} {f2}"
 # control block
 CONTROL = """\
 CONTROL
-{sweep_type}
+{analysis_type}
 OPTIONS  {options}
 SUBSPLAM Y {subsections_per_wavelength}
 {edge_checking}
@@ -185,6 +185,8 @@ DET_ABS_RES {resonance_detection}
 {hierarchy_sweep}
 END CONTROL
 """
+ANALYSIS_TYPES = {"frequency sweep": "STD", "parameter sweep": "VARSWP",
+                  "optimization": "OPTIMIZE"}
 
 # optimization block
 OPTIMIZATION = """\

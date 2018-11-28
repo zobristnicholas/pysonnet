@@ -43,7 +43,7 @@ geometry:
 frequency:
   sweeps: ''
 control:
-  sweep_type: ''
+  analysis_type: ''
   options: '-d'
   subsections_per_wavelength: 20
   edge_checking: ''

@@ -16,9 +16,9 @@ log.addHandler(logging.NullHandler())
 def add_line(string, addition):
     """Append to string adding new line if empty."""
     if string:
-        string.append(os.linesep + addition)
+        string += os.linesep + addition
     else:
-        string.append(addition)
+        string += addition
 
 
 class Project(dict):
@@ -269,7 +269,7 @@ class Project(dict):
                        "or 'abs max'")
             raise ValueError(message)
         # add the sweep to the project
-        add_line(self['frequency']['sweeps'], sweep)
+        self['frequency']['sweeps'] += sweep + os.linesep
 
     def clear_frequency_sweeps(self):
         """Removes all added frequency sweeps from the project."""
@@ -291,6 +291,21 @@ class Project(dict):
         """Removes all added optimizations from the project."""
         self['optimization']['optimization_parameters'] = ''
         self['optimization']['optimization_goals'] = ''
+
+    def select_analysis(self, analysis_type):
+        """
+        Select what kind of analysis to run.
+
+        :param analysis_type:
+            Valid options are listed below
+            'frequency sweep': Runs all the sweeps added by add_frequency_sweep()
+            'parameter sweep': Runs all the sweeps added by add_parameter_sweep()
+            'optimization': Runs all the sweeps added by add_optimization()
+        """
+        message = "'analysis_type' parameter must be in {}"
+        assert analysis_type in b.ANALYSIS_TYPES.keys(), \
+            message.format(list(b.ANALYSIS_TYPES.values()))
+        self['control']['analysis_type'] = b.ANALYSIS_TYPES[analysis_type]
 
     def set_units(self, **kwargs):
         """
@@ -384,7 +399,7 @@ class GeometryProject(Project):
         else:
             raise NotImplementedError
         # add the reference plane to the geometry
-        add_line(self['geometry']['reference_planes'], plane)
+        self['geometry']['reference_planes'] += plane + os.linesep
 
     def define_metal(self, metal_type, name, **kwargs):
         """
@@ -1088,7 +1103,7 @@ class GeometryProject(Project):
                                                parameter_form=parameter_form,
                                                ports=ports)
         # add the output file to the project
-        add_line(self['output_file']['response_data'], output)
+        self['output_file']['response_data'] += output + os.linesep
 
 
 class NetlistProject(Project):
