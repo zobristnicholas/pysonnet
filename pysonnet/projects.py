@@ -965,6 +965,49 @@ class GeometryProject(Project):
         """Adds a component to the project."""
         raise NotImplementedError
 
+    def add_gdstk_cell(self, polygon_type, cell, layer=None, datatype=None,
+                       **kwargs):
+        """
+        Adds a GDSTK Cell to the project.
+
+        :param polygon_type: type of polygon to add (string)
+            Valid options are listed below with the additional keyword arguments that may
+            be needed for each.
+            'metal': a metal polygon
+            'via': a via polygon
+                :keyword to_level: the level to which the polygon extends (integer)
+                :keyword via_fill_type: meshing used for the via polygon (string)
+                    Valid options are 'ring' (default), 'center', 'vertices', 'solid',
+                    and 'bar'.
+                :keyword pads: metal pads over the via, default is False (boolean)
+            'dielectric brick': a dielectric brick polygon
+        :param cell: a gdstk cell (object)
+        :param layer: the layer number to use (integer)
+            The default is None and all layers are used.
+        :param datatype: the datatype to use (integer)
+            The default is None and all datatypes are used.
+
+        Keywords to add_polygons are also included.
+
+        Note: Flatten the cell if references are used.
+        """
+        points = []
+        for polygon in cell.polygons:
+            p_layer = polygon.layer if layer is not None else None
+            p_datatype = polygon.datatype if datatype is not None else None
+            if p_layer == layer and p_datatype == datatype:
+                points.append(polygon.points)
+
+        for path in cell.paths:
+            polygons = path.to_polygons()
+            for i in range(path.num_paths):
+                p_layer = path.layers[i] if layer is not None else None
+                p_datatype = path.datatype[i] if datatype is not None else None
+                if p_layer == layer and p_datatype == datatype:
+                    points.append(polygons[i].points)
+
+        self.add_polygons(polygon_type, points, **kwargs)
+
     def add_polygons(self, polygon_type, polygons, tech_layer=None, **kwargs):
         """
         Adds polygons to the project.
