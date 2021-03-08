@@ -11,4 +11,6 @@ setup(name='pysonnet',
       packages=find_packages(),
       install_requires=['numpy', 'scipy', 'matplotlib', 'pytest', 'pyyaml',
                         'psutil'],
-      zip_safe=False)
+      zip_safe=False,
+      include_package_data=True,
+      package_data={'': ['*.yaml']},)
