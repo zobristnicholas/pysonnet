@@ -910,7 +910,9 @@ class GeometryProject(Project):
                 min_value = trial_value
                 min_index = trial_index
                 polygon_index = index
-                lower = polygon[min_index - 1, :]
+                # [:-1, :] removes the repeated point at the end of the file
+                lower = polygon[:-1, :][min_index - 1, :]
+                # % (polygon.shape[0] - 1) skips the repeated point at the end
                 upper = polygon[(min_index + 1) % (polygon.shape[0] - 1), :]
                 if np.linalg.norm(lower - position) < np.linalg.norm(upper - position):
                     new_position = (lower + polygon[min_index, :]) / 2
