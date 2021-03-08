@@ -181,7 +181,7 @@ SPEED {speed}
 CACHE_ABS {caching_level}
 TARG_ABS {abs_target_number}
 Q_ACC {q_accuracy}
-DET_ABS_RES {resonance_detection}
+DET_ABS_RES {res_detection}
 {hierarchy_sweep}
 END CONTROL
 """
