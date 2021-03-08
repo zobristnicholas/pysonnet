@@ -890,7 +890,7 @@ class GeometryProject(Project):
         for port in ports:
             file_ids.append(port.split("POLY")[1].split()[0])
         # find the right polygon and vertex
-        polygons = [c + "END" for c in self['geometry']['polygons'].split("END")
+        polygons = [c + "END" for c in self['geometry']['polygons'].split("END\n")
                     if c.strip()]
         min_value = np.inf
         min_index = 0
