@@ -63,7 +63,7 @@ class Project(dict):
         self.clear()
         # load configuration
         with open(load_path, "r") as file_handle:
-            configuration = yaml.load(file_handle)
+            configuration = yaml.load(file_handle, Loader=yaml.FullLoader)
         for block in configuration.keys():
             if block not in self.sections:
                 message = "{} is an unrecognized configuration section"
