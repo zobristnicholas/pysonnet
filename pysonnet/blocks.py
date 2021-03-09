@@ -218,7 +218,7 @@ FILEOUT
 FOLDER {output_folder}
 END FILEOUT
 """
-RESPONSE_DATA_FORMAT = ("{file_type} {deembed} {include_abs} {filename} "
+RESPONSE_DATA_FORMAT = ("{file_type} {deembed} {include_abs} {file_name} "
                         "{include_comments} {precision} {parameter_type} "
                         "{parameter_form} {ports}")
 RESPONSE_DATA_NETLIST_FORMAT = ("{file_type} NET={network} {deembed} {include_abs} "

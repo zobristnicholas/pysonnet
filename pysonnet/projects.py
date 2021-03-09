@@ -44,12 +44,6 @@ class Project(dict):
                 load_path = os.path.join(directory, 'default_configuration.yaml')
             self.load(load_path)
 
-        # initialize internal boolean indicating if ports have been made
-        if self['geometry']['ports']:
-            self._has_ports = True
-        else:
-            self._has_ports = False
-
     def make_sonnet_file(self, file_path):
         """
         Convert the current state of this project into a Sonnet file.
@@ -1166,16 +1160,17 @@ class GeometryProject(Project):
             real-imaginary.
         """
         # check inputs
-        file_types = {'touchstone': 'TS', 'TS': 'TS',
-                      'touchstone2': 'TOUCH2', 'TOUCH2': 'TOUCH2',
-                      'databank': 'DATA_BANK', 'DATA_BANK': 'DATA_BANK',
-                      'scompact': 'SC', 'SC': 'SC',
-                      'spreadsheet': 'CSV', 'csv': 'CSV', 'CSV': 'CSV',
-                      'cadance': 'CADANCE', 'CADANCE': 'CADANCE',
-                      'mdif_s2p': 'MDIF', 'mdif': 'MDIF', 'MDIF': 'MDIF',
-                      'mdif_ebridge': 'EBMDIF', 'EBMDIF': 'EBMDIF'}
+        file_types = {'touchstone': 'TS', 'ts': 'TS',
+                      'touchstone2': 'TOUCH2', 'touch2': 'TOUCH2',
+                      'databank': 'DATA_BANK', 'data_bank': 'DATA_BANK',
+                      'scompact': 'SC', 'sc': 'SC',
+                      'spreadsheet': 'CSV', 'csv': 'CSV',
+                      'cadance': 'CADANCE',
+                      'mdif_s2p': 'MDIF', 'mdif': 'MDIF',
+                      'mdif_ebridge': 'EBMDIF', 'ebmdif': 'EBMDIF'}
         message = "'file_type' parameter must be in {}".format(list(file_types.keys()))
         assert file_type in file_types.keys(), message
+        file_type = file_types[file_type.lower()]
         message = "'parameter_type' parameter must be in {}".format(['S', 'Y', 'Z'])
         assert parameter_type in ['S', 'Y', 'Z'], message
         message = "'parameter_form' parameter must be in {}".format(['RI', 'MA', 'DB'])
@@ -1185,13 +1180,31 @@ class GeometryProject(Project):
         include_abs = 'Y' if include_abs else 'N'
         include_comments = 'IC' if include_comments else 'NC'
         precision = 15 if high_precision else 8
+        # create ports string
+        port_dict = {}
+        for port in self['geometry']['ports'].split("POR1"):
+            if port:  # could be empty string
+                data = port.split('\n')[4].split(" ")
+                port_num = int(data[0])
+                port_params = data[1:5]
+                port_dict[port_num] = port_params
+        if not port_dict:
+            raise AttributeError("No ports have been defined.")
+
+        port_string = "FTERM"
+        for i in range(1, max(port_dict.keys()) + 1):
+            try:
+                port_string += (" " + " ".join(port_dict[i]))
+            except KeyError:
+                port_string += " 0 0 0 0"
+
         if file_name is None:
             file_name = '$BASENAME'
-        # create ports string (defer if ports have not been made)
-        if self._has_ports:
-            raise NotImplementedError
-        else:
-            ports = "{ports}"
+            if file_type == "TS":
+                file_name += ".s{}p".format(len(port_dict.keys()))
+            elif file_type == "TOUCH2":
+                file_name += ".ts"
+
         # set the output folder if it was specified
         if output_folder is not None:
             self['output_file']['output_folder'] = output_folder
@@ -1204,7 +1217,7 @@ class GeometryProject(Project):
                                                precision=precision,
                                                parameter_type=parameter_type,
                                                parameter_form=parameter_form,
-                                               ports=ports)
+                                               ports=port_string)
         # add the output file to the project
         self['output_file']['response_data'] += output + os.linesep
         log.debug("{} output file added here '{}'".format(file_type, output_folder))
