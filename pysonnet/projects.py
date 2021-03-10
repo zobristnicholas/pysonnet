@@ -5,9 +5,10 @@ import psutil
 import logging
 import subprocess
 import numpy as np
-import pysonnet.blocks as b
 from datetime import datetime
 
+import pysonnet.blocks as b
+from pysonnet.sonnet import test_sonnet
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -153,8 +154,7 @@ class Project(dict):
         assert (self['frequency']['sweeps'] != '' or
                 self['parameter_sweeps']['parameter_sweep'] != '' or
                 self['optimization']['optimization_goals'] != ''), message
-        # set analysis type
-        self['control']['analysis_type'] = b.ANALYSIS_TYPES[analysis_type]
+
         # check to make sure there is a project file to run
         if file_path is not None:
             self.make_sonnet_file(file_path)
@@ -166,10 +166,12 @@ class Project(dict):
         if self['sonnet']["sonnet_path"] == '':
             raise ValueError("configure sonnet before running")
         # collect the command to run
-        command = [os.path.join(self['sonnet']["sonnet_path"], "bin", "em"), options,
-                   self.project_file_path, external_frequency_file]
-        command = [element for element in command
-                   if (element != '' and element != '-' and element is not None)]
+        command = [os.path.join(self['sonnet']["sonnet_path"], "bin", "em")]
+        if options:
+            command.append(options)
+        command.append(self.project_file_path)
+        if external_frequency_file:
+            command.append(external_frequency_file)
         log.debug("running a(n) {}".format(analysis_type))
         # run the command
         with psutil.Popen(command, stdout=subprocess.PIPE,
@@ -178,20 +180,16 @@ class Project(dict):
                 output = process.stdout.readline().decode('utf-8')
                 if output == '' and process.poll() is not None:
                     break
-                if output:
+                if output.strip():
                     log.info(output.strip())
 
-    def locate_sonnet(self, sonnet_path, version='', license_id=''):
+    def locate_sonnet(self, sonnet_path):
         """
         Provide the project with the path to the Sonnet folder so that it can be run.
 
         :param sonnet_path: path to the Sonnet program
-        :param version: Sonnet version number
-        :param license_id: user license ID
         """
-        assert os.path.isdir(sonnet_path), "'{}' is not a directory".format(sonnet_path)
-        assert os.path.isfile(os.path.join(sonnet_path, 'bin', 'em')), \
-            "the sonnet directory has an unrecognizable format"
+        version, license_id = test_sonnet(sonnet_path)
         self['sonnet']['sonnet_path'] = sonnet_path
         log.debug("sonnet path set to '{}'".format(sonnet_path))
         self['sonnet']['version'] = version
