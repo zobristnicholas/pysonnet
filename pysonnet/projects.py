@@ -1,6 +1,7 @@
 import os
 import yaml
 import shlex
+import shutil
 import psutil
 import logging
 import subprocess
@@ -374,7 +375,7 @@ class GeometryProject(Project):
     """
     Class for creating and manipulating a Sonnet geometry project.
     """
-    def make_sonnet_file(self, file_path):
+    def make_sonnet_file(self, file_path, clean=True):
         # convert the project format to the file format
         file_string = (b.GEOMETRY_PROJECT.format(**self['sonnet']) +
                        b.HEADER.format(**self['sonnet']) +
@@ -398,6 +399,8 @@ class GeometryProject(Project):
         if not os.path.isdir(folder):
             os.mkdir(folder)
         subfolder = os.path.join(folder,  os.path.basename(file_path).split('.')[0])
+        if clean and os.path.isdir(subfolder):
+            shutil.rmtree(subfolder)
         if not os.path.isdir(subfolder):
             os.mkdir(subfolder)
         log.debug("geometry project saved")
