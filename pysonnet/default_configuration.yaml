@@ -3,6 +3,7 @@ sonnet:
   version: ''
   license_id: ''
   date: ''
+  pysonnet_version: ''
 dimensions:
   conductivity: 'SM'
   frequency: 'GHZ'

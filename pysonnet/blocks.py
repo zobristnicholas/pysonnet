@@ -16,7 +16,7 @@ LIC {license_id}
 DAT {date}
 BUILT_BY_CREATED unknown "unknown version" {date}
 BUILT_BY_SAVED unknown "unknown version"
-ANN Created by pysonnet
+ANN Created by pysonnet {pysonnet_version}
 END HEADER
 """
 

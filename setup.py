@@ -2,8 +2,19 @@
 # to make an editable pip install from a cloned git repository
 from setuptools import setup, find_packages
 
+
+def get_version(path):
+    with open(path, "r") as f:
+        for line in f.readlines():
+            if line.startswith('__version__'):
+                sep = '"' if '"' in line else "'"
+                return line.split(sep)[1]
+        else:
+            raise RuntimeError("Unable to find version string.")
+
+
 setup(name='pysonnet',
-      version='0.0.1',
+      version=get_version('pysonnet/projects.py'),
       description='Python tools for working with Sonnet E&M',
       url='http://github.com/zobristnicholas/pysonnet',
       author='Nicholas Zobrist',

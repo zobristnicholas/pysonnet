@@ -21,6 +21,7 @@ def add_line(string, addition):
         string += os.linesep + addition
     else:
         string += addition
+__version__ = '0.0.1'
 
 
 class Project(dict):
@@ -69,6 +70,9 @@ class Project(dict):
         # add date if it doesn't exist
         if self['sonnet']['date'] == '':
             self['sonnet']['date'] = datetime.now().strftime('%m/%d/%Y %H:%M:%S')
+        # add pysonnet version if it doesn't exist
+        if self['sonnet']['pysonnet_version'] == '':
+            self['sonnet']['pysonnet_version'] = __version__
         log.debug("configuration loaded")
 
     def save(self, save_path):
