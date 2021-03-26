@@ -14,13 +14,6 @@ from pysonnet.sonnet import test_sonnet
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
-
-def add_line(string, addition):
-    """Append to string adding new line if empty."""
-    if string:
-        string += os.linesep + addition
-    else:
-        string += addition
 __version__ = '0.0.1'
 
 
