@@ -675,13 +675,15 @@ class GeometryProject(Project):
         """Adds a dimension parameter to the project."""
         raise NotImplementedError
 
-    def setup_box(self, box_width_x, box_width_y, x_cells, y_cells):
+    def setup_box(self, box_width_x, box_width_y, x_cells, y_cells,
+                  symmetry=False):
         """Set up box size and cell spacing.
 
         :param box_width_x: length of the box in the x direction (float)
         :param box_width_y: length of the box in the y direction (float)
         :param x_cells: number of cells in the x direction (integer)
         :param y_cells: number of cells in the y direction (integer)
+        :param symmetry: enable symmetry (boolean)
         """
         self['geometry']['box_width_x'] = float(box_width_x)
         self['geometry']['box_width_y'] = float(box_width_y)
@@ -689,6 +691,9 @@ class GeometryProject(Project):
         self['geometry']['x_cells2'] = 2 * int(x_cells)
         self['geometry']['y_cells2'] = 2 * int(y_cells)
         log.debug("number of cells set to ({}, {})".format(int(x_cells), int(y_cells)))
+        if symmetry:
+            self['geometry']['symmetry'] = 'SYM'
+            log.debug("symmetry enabled")
 
     def define_dielectric_bricks(self):
         """Defines a dielectric brick that can be used in the project."""
