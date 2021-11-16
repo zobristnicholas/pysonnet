@@ -637,7 +637,8 @@ class GeometryProject(Project):
             unnamed = b.LAYER_FORMAT.format(name="Unnamed", thickness=0, xy_epsilon=1,
                                             xy_mu=1, xy_e_loss=0, xy_m_loss=0, xy_sigma=0,
                                             z_partitions=0, z_epsilon="", z_mu="",
-                                            z_e_loss="", z_m_loss="", z_sigma="")
+                                            z_e_loss="", z_m_loss="",
+                                            z_sigma="", anisotropic="")
             layers += [unnamed] * (level + 1 - len(layers))
         # add the new number of metal levels to the project
         self['geometry']['n_metal_levels'] = len(layers) - 1
@@ -655,10 +656,11 @@ class GeometryProject(Project):
                             'z_m_loss': (magnetic_loss[1] if len(magnetic_loss) == 2
                                          else magnetic_loss[0]),
                             'z_sigma': (conductivity[1] if len(conductivity) == 2
-                                        else conductivity[0])}
+                                        else conductivity[0]),
+                            'anisotropic': 'A'}
         else:
             z_parameters = {'z_epsilon': "", 'z_mu': "", 'z_e_loss': "", 'z_m_loss': "",
-                            'z_sigma': ""}
+                            'z_sigma': "", 'anisotropic': ''}
         # format the new dielectric layer
         parameters.update(z_parameters)
         layers[level] = b.LAYER_FORMAT.format(**parameters)
