@@ -29,16 +29,19 @@ def test_sonnet(sonnet_path):
                       stderr=subprocess.PIPE) as process:
         while True:
             line = process.stdout.readline().decode('utf-8').strip()
-            if line == '' and process.poll() is not None:
+            error = process.stderr.readline().decode('utf-8').strip()
+            if not line and not error and process.poll() is not None:
                 break
+            if error:
+                log.error(error)
+            if line:
+                log.info(line)
             if line.lower().startswith("version"):
                 # Grab the version number.
                 version = line.lower().split("version", 1)[1].strip()
-
             if line.lower().startswith("run"):
                 # Grab the license making sure to remove the trailing period.
                 license_id = ".".join(line.split()[-1].split(".")[:-1])
-
             if line.lower().startswith("em simulation completed"):
                 success = True
 

@@ -175,11 +175,15 @@ class Project(dict):
         with psutil.Popen(command, stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE) as process:
             while True:
-                output = process.stdout.readline().decode('utf-8')
-                if output == '' and process.poll() is not None:
+                output = process.stdout.readline().decode('utf-8').strip()
+                error = process.stderr.readline().decode('utf-8').strip()
+                if not output and not error and process.poll() is not None:
                     break
-                if output.strip():
-                    log.info(output.strip())
+                if output:
+                    log.info(output)
+                if error:
+                    log.error(error)
+
 
     def locate_sonnet(self, sonnet_path):
         """
