@@ -376,6 +376,26 @@ class GeometryProject(Project):
     """
     Class for creating and manipulating a Sonnet geometry project.
     """
+    
+    # exports current data as a .csv file
+    def export_command(sonnet_path,xml,sonnet_file):
+
+    # path to soncmd
+    soncmd_path = os.path.join(sonnet_path, 'bin', 'soncmd')
+
+    # collect the command to run
+    command = [soncmd_path,'-JXYExport', xml, sonnet_file]
+
+    with psutil.Popen(command, stdout=subprocess.PIPE,
+                      stderr=subprocess.PIPE) as process:
+        while True:
+            output = process.stdout.readline().decode('utf-8')
+            if output == '' and process.poll() is not None:
+                break
+            if output.strip():
+                log.info(output.strip())
+                
+    
     def make_sonnet_file(self, file_path, clean=True):
         # convert the project format to the file format
         file_string = (b.GEOMETRY_PROJECT.format(**self['sonnet']) +
