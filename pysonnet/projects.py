@@ -495,14 +495,14 @@ class GeometryProject(Project):
     	with psutil.Popen(command, stdout=subprocess.PIPE,
                       stderr=subprocess.PIPE) as process:
         while True:
-			output = process.stdout.readline().decode('utf-8').strip()
-            error = process.stderr.readline().decode('utf-8').strip()
-            if not output and not error and process.poll() is not None:
-				break
-            if output:
-				log.info(output)
-            if error:
-                log.error(error)
+		output = process.stdout.readline().decode('utf-8').strip()
+            	error = process.stderr.readline().decode('utf-8').strip()
+            	if not output and not error and process.poll() is not None:
+			break
+            	if output:
+			log.info(output)
+            	if error:
+                	log.error(error)
 	
     def add_reference_plane(self, position, plane_type='fixed', length=None):
         """
