@@ -376,23 +376,6 @@ class GeometryProject(Project):
     """
     Class for creating and manipulating a Sonnet geometry project.
     """
-    
-    # exports current data as a .csv file
-   def export_command(sonnet_path,xml,sonnet_file):
-
-    # path to soncmd
-       soncmd_path = os.path.join(sonnet_path, 'bin', 'soncmd')
-
-    # collect the command to run
-       command = [soncmd_path,'-JXYExport', xml, sonnet_file]
-
-       with psutil.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
-           while True:
-                output = process.stdout.readline().decode('utf-8')
-                if output == '' and process.poll() is not None:
-                    break
-                if output.strip():
-                    log.info(output.strip())
                 
     
     def make_sonnet_file(self, file_path, clean=True):
@@ -424,7 +407,103 @@ class GeometryProject(Project):
         if not os.path.isdir(subfolder):
             os.mkdir(subfolder)
         log.debug("geometry project saved")
+   
+	def current_desnity_xml(**kwargs):
+		
+    	# xml file name
+    	name = kwargs.get('name', 'test')
 
+    	# define filename to be exported
+    	filename = kwargs.get('filename', "current1")
+
+    	# define the sonnet file whose data we want to access
+    	label = kwargs.get('label', "current1.son")
+
+    	# entire sonnet bounding box = "Whole"
+    	Region_style = kwargs.get('Region_style', "Whole")
+
+    	# current density level
+    	Levels_stop = kwargs.get('Levels_stop', "0")
+    	Levels_range = kwargs.get('Levels_range', "Some")
+    	Levels_start = kwargs.get('Levels_start', "0")
+
+    	# grid size for each cell
+    	Grid_x_step = kwargs.get('Grid_x_step', "10")
+    	Grid_y_step = kwargs.get('Grid_y_step', "10")
+
+    	# measurement type
+    	Measurement_complex = kwargs.get('Measurement_complex', "No")
+    	Measurement_type = kwargs.get('Measurement_type', "jxy")
+
+    	# Port1 parameters
+    	capacitance = kwargs.get('capacitance', "O")
+    	inductance = kwargs.get('inductance', "O")
+    	number1 = kwargs.get('number1', "1")
+    	phase = kwargs.get('phase', "O")
+    	reactance = kwargs.get('reactance', "O")
+    	resistance = kwargs.get('resistance', "5O")
+    	voltage1 = kwargs.get('voltage1', "1")
+
+    	# Port2 parameters
+    	number2 = kwargs.get('number2', "2")
+    	voltage2 = kwargs.get('voltage2', "0")
+
+    	# Freq of interest
+    	Frequency_value = kwargs.get('Frequency_value', "6000000000")
+
+
+    	# xml file generation
+
+    	JXY_Export_Set = ET.Element("JXY_Export_Set")
+
+    	JXY_Export = ET.SubElement(JXY_Export_Set, "JXY_Export", Filename=filename, Label=label)
+
+    	ET.SubElement(JXY_Export, "Region", Style= Region_style)
+    	ET.SubElement(JXY_Export, "Levels", Stop=Levels_stop, Range=Levels_range, Start=Levels_start)
+    	ET.SubElement(JXY_Export, "Grid", XStep=Grid_x_step, YStep=Grid_y_step)
+    	ET.SubElement(JXY_Export, "Measurement", Complex=Measurement_complex, Type=Measurement_type)
+
+    	Drive = ET.SubElement(JXY_Export, "Drive")
+
+
+    	ET.SubElement(Drive, "JXYPort", Capacitance=capacitance, Inductance=inductance, Number=number1,
+                  Phase=phase, Reactance=reactance, Resistance=resistance, Voltage=voltage1)
+
+    	ET.SubElement(Drive, "JXYPort", Capacitance=capacitance, Inductance=inductance,
+                  Number=number2,
+                  Phase=phase, Reactance=reactance, Resistance=resistance,
+                  Voltage=voltage2)
+
+    	Locator = ET.SubElement(JXY_Export, "Locator")
+
+    	ET.SubElement(Locator, "Frequency", Value=Frequency_value)
+
+    	tree = ET.ElementTree(JXY_Export_Set)
+    	tree.write(f"{name}.xml", encoding='utf-8', xml_declaration=True)
+
+    	#turns the xml file into the prettyprint format needed for sonnet
+    	xmlstr = minidom.parseString(ET.tostring(JXY_Export_Set)).toprettyxml(indent="\t", encoding='utf-8')
+    	with open(f"{name}.xml", "wb") as f:
+			f.write(xmlstr)
+			
+	# Runs the export command in terminal
+	def export_current_density(xml,sonnet_file):
+    	
+		# collect the command to run
+    	command = [os.path.join(self['sonnet']["sonnet_path"], "bin", 'soncmd'),'-JXYExport', xml, sonnet_file]
+
+    	with psutil.Popen(command, stdout=subprocess.PIPE,
+                      stderr=subprocess.PIPE) as process:
+        while True:
+			output = process.stdout.readline().decode('utf-8').strip()
+            error = process.stderr.readline().decode('utf-8').strip()
+            if not output and not error and process.poll() is not None:
+				break
+            if output:
+				log.info(output)
+            if error:
+                log.error(error)
+	
     def add_reference_plane(self, position, plane_type='fixed', length=None):
         """
         Adds a reference plane to one side of the box.
