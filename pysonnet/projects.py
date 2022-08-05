@@ -410,7 +410,7 @@ class GeometryProject(Project):
             os.mkdir(subfolder)
         log.debug("geometry project saved")
    
-		def export_current_desnity(self,sonnet_file,**kwargs):
+	def export_current_desnity(self,sonnet_file,**kwargs):
 
 		
     	# xml file name
