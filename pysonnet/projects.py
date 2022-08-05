@@ -3,12 +3,14 @@ import yaml
 import shlex
 import shutil
 import psutil
+import pathlib
 import logging
 import subprocess
 import numpy as np
 from datetime import datetime
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+
 
 import pysonnet.blocks as b
 from pysonnet.sonnet import test_sonnet
@@ -410,7 +412,9 @@ class GeometryProject(Project):
             os.mkdir(subfolder)
         log.debug("geometry project saved")
 
-    def export_current_density(self,**kwargs):
+    def export_current_density(self,folder,**kwargs):
+
+        directory = pathlib.Path(__file__).parent.absolute()
 
         # xml file name
         xml_name = kwargs.get('xml_name', 'test.xml')
@@ -474,11 +478,15 @@ class GeometryProject(Project):
 
         #turns the xml file into the prettyprint format needed for sonnet
         xmlstr = minidom.parseString(ET.tostring(JXY_Export_Set)).toprettyxml(indent="\t", encoding='utf-8')
-        with open(xml_name, "wb") as f:
+
+        # move to the folder with .son file.
+        # One problem is that the original tree.write file also exists so I need to delete that one in the process
+        directed_xml = os.path.join(directory / folder, xml_name)
+        with open(directed_xml, "wb") as f:
             f.write(xmlstr)
 
         # collect the command to run
-        command = [os.path.join(self['sonnet']["sonnet_path"], "bin", 'soncmd'),'-JXYExport', xml_name, son_label]
+        command = [os.path.join(self['sonnet']["sonnet_path"], "bin", 'soncmd'),'-JXYExport', directed_xml, son_label]
 
         with psutil.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE) as process:
             while True:
