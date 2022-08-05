@@ -409,17 +409,17 @@ class GeometryProject(Project):
         if not os.path.isdir(subfolder):
             os.mkdir(subfolder)
         log.debug("geometry project saved")
-   
-    def export_current_density(self,sonnet_file,**kwargs):
+
+    def export_current_density(self,**kwargs):
 
         # xml file name
-        name = kwargs.get('name', 'test')
+        xml_name = kwargs.get('name', 'test.xml')
 
         # define filename to be exported
-        filename = kwargs.get('filename', "current1")
+        csv_name = kwargs.get('filename', "current1.csv")
 
         # define the sonnet file whose data we want to access
-        label = kwargs.get('label', "current1.son")
+        son_label = kwargs.get('label', "current1.son")
 
         # entire sonnet bounding box = "Whole"
         region_style = kwargs.get('Region_style', "Whole")
@@ -455,7 +455,7 @@ class GeometryProject(Project):
 
         # xml file generation
         JXY_Export_Set = ET.Element("JXY_Export_Set")
-        JXY_Export = ET.SubElement(JXY_Export_Set, "JXY_Export", Filename=filename, Label=label)
+        JXY_Export = ET.SubElement(JXY_Export_Set, "JXY_Export", Filename=csv_name, Label=son_label)
         ET.SubElement(JXY_Export, "Region", Style= region_style)
         ET.SubElement(JXY_Export, "Levels", Stop=levels_stop, Range=levels_range, Start=levels_start)
         ET.SubElement(JXY_Export, "Grid", XStep=grid_x_step, YStep=grid_y_step)
@@ -470,15 +470,15 @@ class GeometryProject(Project):
         Locator = ET.SubElement(JXY_Export, "Locator")
         ET.SubElement(Locator, "Frequency", Value=frequency_value)
         tree = ET.ElementTree(JXY_Export_Set)
-        tree.write(f"{name}.xml", encoding='utf-8', xml_declaration=True)
+        tree.write(xml_name, encoding='utf-8', xml_declaration=True)
 
         #turns the xml file into the prettyprint format needed for sonnet
         xmlstr = minidom.parseString(ET.tostring(JXY_Export_Set)).toprettyxml(indent="\t", encoding='utf-8')
-        with open(f"{name}.xml", "wb") as f:
+        with open(xml_name, "wb") as f:
             f.write(xmlstr)
 
         # collect the command to run
-        command = [os.path.join(self['sonnet']["sonnet_path"], "bin", 'soncmd'),'-JXYExport', xmlstr, sonnet_file]
+        command = [os.path.join(self['sonnet']["sonnet_path"], "bin", 'soncmd'),'-JXYExport', xml_name, son_label]
 
         with psutil.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE) as process:
             while True:
