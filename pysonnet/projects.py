@@ -417,7 +417,7 @@ class GeometryProject(Project):
         directory = pathlib.Path(__file__).parent.absolute()
 
         # xml file name
-        xml_name = kwargs.get('xml_name', 'test.xml')
+        xml_name = kwargs.get('xml_name', 'test')
 
         # define filename to be exported
         csv_name = kwargs.get('csv_name', "current1.csv")
@@ -474,14 +474,14 @@ class GeometryProject(Project):
         Locator = ET.SubElement(JXY_Export, "Locator")
         ET.SubElement(Locator, "Frequency", Value=frequency)
         tree = ET.ElementTree(JXY_Export_Set)
-        tree.write(xml_name, encoding='utf-8', xml_declaration=True)
+        tree.write(xml_name + '.xml', encoding='utf-8', xml_declaration=True)
 
         #turns the xml file into the prettyprint format needed for sonnet
         xmlstr = minidom.parseString(ET.tostring(JXY_Export_Set)).toprettyxml(indent="\t", encoding='utf-8')
 
         # move to the folder with .son file.
         # One problem is that the original tree.write file also exists so I need to delete that one in the process
-        directed_xml = os.path.join(directory / folder, xml_name)
+        directed_xml = os.path.join(directory / folder, xml_name + '.xml')
         with open(directed_xml, "wb") as f:
             f.write(xmlstr)
 
