@@ -485,9 +485,6 @@ class GeometryProject(Project):
         with open(directed_xml, "wb") as f:
             f.write(xmlstr)
 
-        # remove the original xml file
-        os.remove(xml_name + '.xml')
-
         # collect the command to run
         command = [os.path.join(self['sonnet']["sonnet_path"], "bin", 'soncmd'),'-JXYExport', directed_xml, son_label]
 
@@ -502,6 +499,8 @@ class GeometryProject(Project):
                 if error:
                     log.error(error)
 
+        # remove the original xml file
+        os.remove(xml_name + '.xml')
 
     def add_reference_plane(self, position, plane_type='fixed', length=None):
         """
