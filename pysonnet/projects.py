@@ -7,6 +7,8 @@ import logging
 import subprocess
 import numpy as np
 from datetime import datetime
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
 
 import pysonnet.blocks as b
 from pysonnet.sonnet import test_sonnet
@@ -408,7 +410,8 @@ class GeometryProject(Project):
             os.mkdir(subfolder)
         log.debug("geometry project saved")
    
-	def current_desnity_xml(**kwargs):
+	def export_current_desnity(self,sonnet_file,**kwargs):
+
 		
     	# xml file name
     	name = kwargs.get('name', 'test')
@@ -420,20 +423,20 @@ class GeometryProject(Project):
     	label = kwargs.get('label', "current1.son")
 
     	# entire sonnet bounding box = "Whole"
-    	Region_style = kwargs.get('Region_style', "Whole")
+    	region_style = kwargs.get('Region_style', "Whole")
 
     	# current density level
-    	Levels_stop = kwargs.get('Levels_stop', "0")
-    	Levels_range = kwargs.get('Levels_range', "Some")
-    	Levels_start = kwargs.get('Levels_start', "0")
+    	levels_stop = kwargs.get('Levels_stop', "0")
+    	levels_range = kwargs.get('Levels_range', "Some")
+    	levels_start = kwargs.get('Levels_start', "0")
 
     	# grid size for each cell
-    	Grid_x_step = kwargs.get('Grid_x_step', "10")
-    	Grid_y_step = kwargs.get('Grid_y_step', "10")
+    	grid_x_step = kwargs.get('Grid_x_step', "10")
+    	grid_y_step = kwargs.get('Grid_y_step', "10")
 
     	# measurement type
-    	Measurement_complex = kwargs.get('Measurement_complex', "No")
-    	Measurement_type = kwargs.get('Measurement_type', "jxy")
+    	measurement_complex = kwargs.get('Measurement_complex', "No")
+    	measurement_type = kwargs.get('Measurement_type', "jxy")
 
     	# Port1 parameters
     	capacitance = kwargs.get('capacitance', "O")
@@ -449,7 +452,7 @@ class GeometryProject(Project):
     	voltage2 = kwargs.get('voltage2', "0")
 
     	# Freq of interest
-    	Frequency_value = kwargs.get('Frequency_value', "6000000000")
+    	frequency_value = kwargs.get('Frequency_value', "6000000000")
 
 
     	# xml file generation
@@ -458,51 +461,48 @@ class GeometryProject(Project):
 
     	JXY_Export = ET.SubElement(JXY_Export_Set, "JXY_Export", Filename=filename, Label=label)
 
-    	ET.SubElement(JXY_Export, "Region", Style= Region_style)
-    	ET.SubElement(JXY_Export, "Levels", Stop=Levels_stop, Range=Levels_range, Start=Levels_start)
-    	ET.SubElement(JXY_Export, "Grid", XStep=Grid_x_step, YStep=Grid_y_step)
-    	ET.SubElement(JXY_Export, "Measurement", Complex=Measurement_complex, Type=Measurement_type)
+    	ET.SubElement(JXY_Export, "Region", Style= region_style)
+    	ET.SubElement(JXY_Export, "Levels", Stop=levels_stop, Range=levels_range, Start=levels_start)
+    	ET.SubElement(JXY_Export, "Grid", XStep=grid_x_step, YStep=grid_y_step)
+    	ET.SubElement(JXY_Export, "Measurement", Complex=measurement_complex, Type=measurement_type)
 
     	Drive = ET.SubElement(JXY_Export, "Drive")
 
 
-    	ET.SubElement(Drive, "JXYPort", Capacitance=capacitance, Inductance=inductance, Number=number1,
-                  Phase=phase, Reactance=reactance, Resistance=resistance, Voltage=voltage1)
+    	ET.SubElement(Drive, "JXYPort", Capacitance=capacitance, Inductance=inductance, 
+            Number=number1,Phase=phase, Reactance=reactance, Resistance=resistance, Voltage=voltage1)
 
     	ET.SubElement(Drive, "JXYPort", Capacitance=capacitance, Inductance=inductance,
-                  Number=number2,
-                  Phase=phase, Reactance=reactance, Resistance=resistance,
-                  Voltage=voltage2)
+            Number=number2,Phase=phase, Reactance=reactance, Resistance=resistance,Voltage=voltage2)
 
     	Locator = ET.SubElement(JXY_Export, "Locator")
 
-    	ET.SubElement(Locator, "Frequency", Value=Frequency_value)
+    	ET.SubElement(Locator, "Frequency", Value=frequency_value)
 
     	tree = ET.ElementTree(JXY_Export_Set)
     	tree.write(f"{name}.xml", encoding='utf-8', xml_declaration=True)
 
     	#turns the xml file into the prettyprint format needed for sonnet
     	xmlstr = minidom.parseString(ET.tostring(JXY_Export_Set)).toprettyxml(indent="\t", encoding='utf-8')
+
     	with open(f"{name}.xml", "wb") as f:
 			f.write(xmlstr)
-			
-	# Runs the export command in terminal
-	def export_current_density(xml,sonnet_file):
-    	
-		# collect the command to run
-    	command = [os.path.join(self['sonnet']["sonnet_path"], "bin", 'soncmd'),'-JXYExport', xml, sonnet_file]
 
-    	with psutil.Popen(command, stdout=subprocess.PIPE,
-                      stderr=subprocess.PIPE) as process:
-        while True:
-		output = process.stdout.readline().decode('utf-8').strip()
-            	error = process.stderr.readline().decode('utf-8').strip()
-            	if not output and not error and process.poll() is not None:
-			break
-            	if output:
-			log.info(output)
-            	if error:
-                	log.error(error)
+        # collect the command to run
+    	command = [os.path.join(self['sonnet']["sonnet_path"], "bin", 'soncmd'),'-JXYExport', xmlstr, sonnet_file]
+
+    	with psutil.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE) as process:
+        
+            while True:
+                output = process.stdout.readline().decode('utf-8').strip()
+                error = process.stderr.readline().decode('utf-8').strip()
+                if not output and not error and process.poll() is not None:
+                    break
+                if output:
+                    log.info(output)
+                if error:
+            	    log.error(error)
+
 	
     def add_reference_plane(self, position, plane_type='fixed', length=None):
         """
