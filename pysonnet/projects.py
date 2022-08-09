@@ -414,6 +414,27 @@ class GeometryProject(Project):
 
     def export_current_density(self,folder,**kwargs):
 
+        """
+        An xml file is generated which contains the parameters of the current density
+        information to be exported as a csv file. Then a system command is run to initiate the export.
+
+        Parameters for xml file:
+
+        xml_name is set without the .xml suffix
+        csv_name is whatever you want to name the csv file
+        son_label is the name of the simulated sonnet file
+        region_style can be 'Whole' or 'Rect',
+        if 'Rect' then you must specify the left, right, top and bottom locations
+        levels specify the metal level of the sonnet file
+        measurement can be complex or not
+        measurment type can be 'jxy', 'jx', 'jy'
+        Port parameters are set
+        frequencies to be exported can be more than one
+        and has to be one that was simulated and written in Hz
+
+
+        """
+
         directory = pathlib.Path(__file__).parent.absolute()
 
         # xml file name
@@ -425,8 +446,13 @@ class GeometryProject(Project):
         # define the sonnet file whose data we want to access
         son_label = kwargs.get('son_label', "current1.son")
 
-        # entire sonnet bounding box = "Whole"
+        # entire bounding box = "Whole".
+        # Specified region = "Rect"
         region_style = kwargs.get('region_style', "Whole")
+        left = kwargs.get('left', '457')
+        right = kwargs.get('right', '1357')
+        top = kwargs.get('top', '41')
+        bottom = kwargs.get('bottom', '39')
 
         # current density level
         levels_stop = kwargs.get('levels_stop', "0")
@@ -455,7 +481,7 @@ class GeometryProject(Project):
         voltage2 = kwargs.get('voltage2', "0")
 
         # Freq of interest
-        frequency = kwargs.get('frequency', "6000000000")
+        frequency = kwargs.get('frequency', "6000000000") # freq must be in Hz
 
         # xml file generation
         JXY_Export_Set = ET.Element("JXY_Export_Set")
