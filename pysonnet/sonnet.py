@@ -28,9 +28,11 @@ def test_sonnet(sonnet_path):
     with psutil.Popen([em_path, "-test"], stdout=subprocess.PIPE,
                       stderr=subprocess.PIPE) as process:
         while True:
-            line = process.stdout.readline().decode('utf-8').strip()
-            error = process.stderr.readline().decode('utf-8').strip()
-            if not line and not error and process.poll() is not None:
+            line_raw = process.stdout.readline()
+            error_raw = process.stderr.readline()
+            line = line_raw.decode('utf-8').strip()
+            error = error_raw.decode('utf-8').strip()
+            if not line_raw and not error_raw and process.poll() is not None:
                 break
             if error:
                 log.error(error)
