@@ -3,10 +3,14 @@ import yaml
 import shlex
 import shutil
 import psutil
+import pathlib
 import logging
 import subprocess
 import numpy as np
 from datetime import datetime
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
+
 
 import pysonnet.blocks as b
 from pysonnet.sonnet import test_sonnet
@@ -15,6 +19,9 @@ log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
 __version__ = '0.0.3'
+
+FILE_MISSING_MESSAGE = "run make_sonnet_file() or provide the 'file_path' argument before" \
+                       " running the simulation"
 
 
 class Project(dict):
@@ -27,10 +34,14 @@ class Project(dict):
     def __init__(self, load_path=None):
         super().__init__()
         self.project_file_path = None
+        self.file_name = file_name
         self.sections = ['sonnet', 'dimensions', 'frequency', 'geometry', 'control',
                          'optimization', 'parameter_sweep', 'output_file',
                          'parameter_netlist', 'circuit', 'subdivider',
                          'quick_start_guide', 'component_data_files', 'translators']
+        self.port = ['capacitance', 'inductance', 'number', 'phase', 'reactance',
+                     'resistance','voltage']
+
         if load_path is not None:
             self.load(load_path)
         else:
@@ -157,9 +168,7 @@ class Project(dict):
         if file_path is not None:
             self.make_sonnet_file(file_path)
         if self.project_file_path is None:
-            message = ("run make_sonnet_file() or provide the 'file_path' argument "
-                       "before running the simulation")
-            raise ValueError(message)
+            raise ValueError(FILE_MISSING_MESSAGE)
         # check to make sure that sonnet has been configured
         if self['sonnet']["sonnet_path"] == '':
             raise ValueError("configure sonnet before running")
@@ -376,6 +385,8 @@ class GeometryProject(Project):
     """
     Class for creating and manipulating a Sonnet geometry project.
     """
+                
+    
     def make_sonnet_file(self, file_path, clean=True):
         # convert the project format to the file format
         file_string = (b.GEOMETRY_PROJECT.format(**self['sonnet']) +
@@ -405,6 +416,115 @@ class GeometryProject(Project):
         if not os.path.isdir(subfolder):
             os.mkdir(subfolder)
         log.debug("geometry project saved")
+
+    def export_current_density(self, frequency=None, driving_port= None,
+                               bottom=None, left=None, right=None, top=None,
+                               measurement_complex= None,measurement_type= None,
+                               levels_stop=None, levels_start= None):
+
+        """
+        An xml file is generated which contains the parameters of the current density
+        information to be exported as a csv file. Then a system command is run to
+        initiate the export. Allowed keywords are listed below.
+
+        :keyword frequency: float value given in Hz
+        :keyword region_style: 'Whole' or 'Rect'
+        :keyword driving_port: port number you wish to drive
+        :keyword bottom: The lower bound of the region
+        :keyword top: The upper bound of the region
+        :keyword left: The left bound of the region
+        :keyword right: The right bound of the region
+        :keyword levels_start: The beginning metal layer to export
+        :keyword levels_stop: The ending metal layer to export
+        :keyword measurement_type: 'jxy', 'jx', 'jy'
+        :keyword measurement_complex: 'yes' or 'No'
+
+        """
+
+
+        if [left,right,top,bottom] == [None,None,None,None]:
+            region_style = 'Whole'
+        else:
+            region_style = 'Rect'
+
+        # measurement type
+        if measurement_type is None:
+            type_error = "Set measurement type as 'jxy', 'jx', or 'jy'"
+            raise ValueError(type_error)
+
+        # make default one port
+        # grab the other parameters from sonnet file
+        # kwarg should be 'which port am i driving'
+
+        # Port1 parameters
+        capacitance = self.port['capacitance']
+        inductance = self.port['inductance']
+        number = self.port['number']
+        reactance = self.port['reactance']
+        resistance = self.port['resistance']
+
+
+        frequency = str(int(frequency))
+
+        if self['geometry']['x_cells2'] is None:
+            missing_setup_box = 'run setup_box() method for cell sizes'
+            raise ValueError(missing_setup_box)
+
+        # xml file generation
+        JXY_Export_Set = ET.Element("JXY_Export_Set")
+        JXY_Export = ET.SubElement(JXY_Export_Set, "JXY_Export", Filename=self.file_name +'.csv', Label=son_label)
+        ET.SubElement(JXY_Export, "Region", Style=region_style)
+        ET.SubElement(JXY_Export, "Levels", Stop=levels_stop, Range='Some', Start=levels_start)
+        ET.SubElement(JXY_Export, "Grid", XStep=self['geometry']['x_cells2'], YStep=self['geometry']['y_cells2'])
+        ET.SubElement(JXY_Export, "Measurement", Complex=measurement_complex, Type=measurement_type)
+        Drive = ET.SubElement(JXY_Export, "Drive")
+
+        # i am trying to create a loop that sets the amount of ports and also includes setting
+        # voltage=1 to the port the user wants to drive and voltage=0 too all other ports.
+        # Not sure how to make such a dynamic loop
+        for port_num in range(number):
+            ET.SubElement(Drive, "JXYPort", Capacitance=capacitance, Inductance=inductance,
+                Number=port_num,Phase=phase, Reactance=reactance, Resistance=resistance, Voltage=driving_port)
+
+        Locator = ET.SubElement(JXY_Export, "Locator")
+        ET.SubElement(Locator, "Frequency", Value=frequency)
+        tree = ET.ElementTree(JXY_Export_Set)
+
+        if self.file_name is None:
+            missing_add_output_file = 'run add_output_file() for file_name'
+            raise ValueError(missing_add_output_file)
+
+        tree.write(self.file_name + '.xml', encoding='utf-8', xml_declaration=True)
+
+        #turns the xml file into the prettyprint format needed for sonnet
+        xmlstr = minidom.parseString(ET.tostring(JXY_Export_Set)).toprettyxml(indent="\t", encoding='utf-8')
+
+        # move to the folder with .son file.
+        # One problem is that the original tree.write file also exists so I need to delete that one in the process
+        if self.project_file_path is None:
+            raise ValueError(FILE_MISSING_MESSAGE)
+
+        directed_xml = os.path.join(self.project_file_path, self.file_name + '.xml')
+        with open(directed_xml, "wb") as f:
+            f.write(xmlstr)
+
+        # collect the command to run
+        command = [os.path.join(self['sonnet']["sonnet_path"], "bin", 'soncmd'),
+                   '-JXYExport', directed_xml, self.file_name + '.son']
+
+        with psutil.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.PIPE) as process:
+            while True:
+                output = process.stdout.readline().decode('utf-8').strip()
+                error = process.stderr.readline().decode('utf-8').strip()
+                if not output and not error and process.poll() is not None:
+                    break
+                if output:
+                    log.info(output)
+                if error:
+                    log.error(error)
+
+        # remove the original xml file
+        os.remove(self.file_name + '.xml')
 
     def add_reference_plane(self, position, plane_type='fixed', length=None):
         """
@@ -965,6 +1085,13 @@ class GeometryProject(Project):
                   .format(port_type, number, new_position[0], new_position[1], resistance,
                           reactance, inductance, capacitance))
 
+        self.port['capacitance'] = capacitance
+        self.port['inductance'] = inductance
+        self.port['reactance'] = reactance
+        self.port['resistance'] = resistance
+        self.port['number'] = number
+
+
     def add_calibration_group(self):
         """Adds a calibration group to the project."""
         raise NotImplementedError
@@ -1209,6 +1336,7 @@ class GeometryProject(Project):
 
         if file_name is None:
             file_name = '$BASENAME'
+            self.file_name = file_name
             if file_type == "TS":
                 file_name += ".s{}p".format(len(port_dict.keys()))
             elif file_type == "TOUCH2":
