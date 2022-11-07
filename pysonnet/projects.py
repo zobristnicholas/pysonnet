@@ -39,6 +39,7 @@ class Project(dict):
             if not os.path.isfile(load_path):
                 load_path = os.path.join(directory, 'default_configuration.yaml')
             self.load(load_path)
+        self.object_ids = []
 
     def make_sonnet_file(self, file_path):
         """
@@ -861,7 +862,8 @@ class GeometryProject(Project):
             'co-calibrated': a port that is part of a calibration group (string)
                 :keyword fixed_reference_plane: is the reference plane fixed (boolean)
                 :keyword length: calibration length (float)
-                :keyword group_id: co-calibration group id, automatic by default (string)
+                :keyword group_id: co-calibration group id, automatic by default.
+                    See add_calibration_group() (string)
         :param number: port number (non-zero integer)
         :param x: x position of the port (float)
         :param y: y position of the port (float)
@@ -960,9 +962,29 @@ class GeometryProject(Project):
                   .format(port_type, number, new_position[0], new_position[1], resistance,
                           reactance, inductance, capacitance))
 
-    def add_calibration_group(self):
-        """Adds a calibration group to the project."""
-        raise NotImplementedError
+    def add_calibration_group(self, group_id, ground='box cover', terminal_width='feedline'):
+        """Adds a calibration group to the project.
+        :param group_id: Calibration group identifying string
+        :keyword terminal_width: electrical contact width of the terminal
+                    ('feedline', 'cell', or the width number)
+        :keyword ground: how the port is connected to ground
+            ('floating', 'box cover', or 'polygon plane')
+
+        """
+        object_id = max(self.object_ids) + 1 if self.object_ids else 0
+        self.object_ids.append(object_id)
+        ground_string = b.GROUND_REFERENCE_TYPES[ground]
+        if isinstance(terminal_width, str):
+            terminal_width_string = b.TERMINAL_WIDTH_TYPES[terminal_width]
+        else:
+            terminal_width_string = b.TERMINAL_WIDTH_VALUE.format(terminal_width)
+
+        self['geometry']['calibration_group'] = b.CALIBRATION_GROUP_FORMAT.format(
+            group_id=group_id,
+            object_id=object_id,
+            ground=ground_string,
+            terminal_width=terminal_width_string
+        )
 
     def add_component(self):
         """Adds a component to the project."""

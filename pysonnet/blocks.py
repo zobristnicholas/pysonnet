@@ -127,6 +127,16 @@ POLY {file_id} 1
 """
 PORT_TYPES = {"standard": "STD", "auto-grounded": "AGND", "co-calibrated": "CUP"}
 DIAGONAL_FORMAT = "DIAGALLOWED {allowed}"
+CALIBRATION_GROUP_FORMAT = """\
+CUPGRP {group_id}
+ID {object_id}
+GNDREF {ground}
+TWTYPE {terminal_width}
+END
+"""
+TERMINAL_WIDTH_TYPES = {"feedline": "FEED", "cell": "1CELL"}
+GROUND_REFERENCE_TYPES = {"floating": "F", "polygon plane": "P", "box cover": "B"}
+TERMINAL_WIDTH_VALUE = "CUST \nTWVALUE {value}"
 TECHLAYER_FORMAT = """\
 TECHLAY {layer_type} "{name}"  <UNSPECIFIED> -1 0
 {poly_type}
