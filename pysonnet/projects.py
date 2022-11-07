@@ -869,8 +869,8 @@ class GeometryProject(Project):
         :param y: y position of the port (float)
         :param resistance: resistance of the port in ohms (float)
         :param reactance: reactance of the port in ohms (float)
-        :param inductance: inductance of the port in nH (float)
-        :param capacitance: capacitance of the port in pF (float)
+        :param inductance: inductance of the port in H (float)
+        :param capacitance: capacitance of the port in F (float)
         """
         # check inputs
         message = "'port_type' parameter must be one of {}"
