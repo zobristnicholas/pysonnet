@@ -859,7 +859,6 @@ class GeometryProject(Project):
                 :keyword fixed_reference_plane: is the reference plane fixed (boolean)
                 :keyword length: calibration length (float)
             'co-calibrated': a port that is part of a calibration group (string)
-                :keyword independent: the port is independent, default False (boolean)
                 :keyword fixed_reference_plane: is the reference plane fixed (boolean)
                 :keyword length: calibration length (float)
                 :keyword group_id: co-calibration group id, automatic by default (string)
@@ -888,6 +887,8 @@ class GeometryProject(Project):
             assert independent, message
         else:  # co-calibrated
             independent = kwargs.pop("independent", False)
+            message = "co-calibrated ports are always never independent"
+            assert not independent, message
         # count the number of ports already made
         ports = ['POR1' + c for c in self['geometry']['ports'].split('POR1') if c]
         n_ports = len(ports)
@@ -906,22 +907,16 @@ class GeometryProject(Project):
         for index, polygon in enumerate(polygons):
             generator = (r for r in polygon.splitlines() if r and not r[0] in ('T', 'E'))
             polygon = np.genfromtxt(generator, skip_header=1)
-            distance = np.linalg.norm(polygon - position, axis=1)
+            mid_points = (polygon[1:] + polygon[:-1]) / 2
+            distance = np.linalg.norm(mid_points - position, axis=1)
             trial_index = np.argmin(np.abs(distance))
             trial_value = np.abs(distance[trial_index])
             if trial_value < min_value:
                 min_value = trial_value
                 min_index = trial_index
                 polygon_index = index
-                # [:-1, :] removes the repeated point at the end of the file
-                lower = polygon[:-1, :][min_index - 1, :]
-                # % (polygon.shape[0] - 1) skips the repeated point at the end
-                upper = polygon[(min_index + 1) % (polygon.shape[0] - 1), :]
-                if np.linalg.norm(lower - position) < np.linalg.norm(upper - position):
-                    new_position = (lower + polygon[min_index, :]) / 2
-                    min_index = (min_index - 1) % (polygon.shape[0] - 1)
-                else:
-                    new_position = (upper + polygon[min_index, :]) / 2
+                new_position = mid_points[min_index, :]
+
         # set the debug_id equal to the port id
         polygon = polygons[polygon_index].splitlines()
         condition = (not polygon[0] or polygon[0][:3] == 'MET' or
