@@ -979,7 +979,7 @@ class GeometryProject(Project):
         else:
             terminal_width_string = b.TERMINAL_WIDTH_VALUE.format(terminal_width)
 
-        self['geometry']['calibration_group'] = b.CALIBRATION_GROUP_FORMAT.format(
+        self['geometry']['calibration_group'] += b.CALIBRATION_GROUP_FORMAT.format(
             group_id=group_id,
             object_id=object_id,
             ground=ground_string,
