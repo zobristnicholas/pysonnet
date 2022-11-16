@@ -176,13 +176,13 @@ class Project(dict):
         with psutil.Popen(command, stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE) as process:
             while True:
-                output = process.stdout.readline().decode('utf-8').strip()
-                error = process.stderr.readline().decode('utf-8').strip()
+                output = process.stdout.readline()
+                error = process.stderr.readline()
                 if not output and not error and process.poll() is not None:
                     break
-                if output:
+                if output.decode('utf-8').strip():
                     log.info(output)
-                if error:
+                if error.decode('utf-8').strip():
                     log.error(error)
 
 
