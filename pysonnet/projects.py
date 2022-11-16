@@ -181,10 +181,10 @@ class Project(dict):
                 error = process.stderr.readline()
                 if not output and not error and process.poll() is not None:
                     break
-                if output.decode('utf-8').strip():
-                    log.info(output)
-                if error.decode('utf-8').strip():
-                    log.error(error)
+                if output:
+                    log.info(output.decode('utf-8').strip())
+                if error:
+                    log.error(error.decode('utf-8').strip())
 
     def locate_sonnet(self, sonnet_path=None):
         """
