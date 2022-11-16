@@ -301,9 +301,7 @@ class Project(dict):
             sweep = b.STEP_FORMAT.format(f1=f1)
         elif sweep_type == 'list':
             assert frequency_list is not None, frequency_list_message
-            sweep = b.LIST_FORMAT
-            for frequency in frequency_list:
-                sweep.append(str(frequency) + ' ')
+            sweep = b.LIST_FORMAT.format(frequency_list="".join([str(f) + " " for f in frequency_list]))
         elif sweep_type == 'dc':
             if f1 is None:
                 sweep = b.DC_FORMAT.format(fcalc="AUTO", frequency='')
