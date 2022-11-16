@@ -178,13 +178,18 @@ class Project(dict):
                           stderr=subprocess.PIPE) as process:
             while True:
                 output = process.stdout.readline()
-                error = process.stderr.readline()
-                if not output and not error and process.poll() is not None:
+                if not output and process.poll() is not None:
                     break
-                if output:
-                    log.info(output.decode('utf-8').strip())
-                if error:
-                    log.error(error.decode('utf-8').strip())
+                message = output.decode('utf-8').strip()
+                if message:
+                    log.info(message)
+            while True:
+                error = process.stderr.readline()
+                if not error and process.poll() is not None:
+                    break
+                message = error.decode('utf-8').strip()
+                if message:
+                    log.error(message)
 
     def locate_sonnet(self, sonnet_path=None):
         """

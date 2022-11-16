@@ -29,24 +29,27 @@ def test_sonnet(sonnet_path):
     with psutil.Popen([em_path, "-test"], stdout=subprocess.PIPE,
                       stderr=subprocess.PIPE) as process:
         while True:
-            line_raw = process.stdout.readline()
-            error_raw = process.stderr.readline()
-            line = line_raw.decode('utf-8').strip()
-            error = error_raw.decode('utf-8').strip()
-            if not line_raw and not error_raw and process.poll() is not None:
+            output = process.stdout.readline()
+            if not output and process.poll() is not None:
                 break
-            if error:
-                log.error(error)
-            if line:
-                log.info(line)
-            if line.lower().startswith("version"):
+            message = output.decode('utf-8').strip()
+            if message:
+                log.info(message)
+            if message.lower().startswith("version"):
                 # Grab the version number.
-                version = line.lower().split("version", 1)[1].strip()
-            if line.lower().startswith("run"):
+                version = message.lower().split("version", 1)[1].strip()
+            if message.lower().startswith("run"):
                 # Grab the license making sure to remove the trailing period.
-                license_id = ".".join(line.split()[-1].split(".")[:-1])
-            if line.lower().startswith("em simulation completed"):
+                license_id = ".".join(message.split()[-1].split(".")[:-1])
+            if message.lower().startswith("em simulation completed"):
                 success = True
+        while True:
+            error = process.stderr.readline()
+            if not error and process.poll() is not None:
+                break
+            message = error.decode('utf-8').strip()
+            if message:
+                log.error(message)
 
     if not success:
         raise RuntimeError("The sonnet test was unsuccessful.")
