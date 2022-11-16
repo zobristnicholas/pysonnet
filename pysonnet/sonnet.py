@@ -17,6 +17,7 @@ def test_sonnet(sonnet_path):
         directory should be a 'bin' folder with the 'em' routine.
     :return: a tuple of the sonnet version string and the license string
     """
+    log.info("Testing sonnet")
     # Check to see if we have a valid path.
     em_path = os.path.join(sonnet_path, 'bin', 'em')
     if not os.path.isfile(em_path):
