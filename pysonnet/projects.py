@@ -4,6 +4,7 @@ import shlex
 import shutil
 import psutil
 import logging
+import pathlib
 import subprocess
 import numpy as np
 from datetime import datetime
@@ -163,7 +164,7 @@ class Project(dict):
             raise ValueError(message)
         # check to make sure that sonnet has been configured
         if self['sonnet']["sonnet_path"] == '':
-            raise ValueError("configure sonnet before running")
+            raise ValueError("configure or locate sonnet before running")
         # collect the command to run
         command = [os.path.join(self['sonnet']["sonnet_path"], "bin", "em")]
         if options:
@@ -185,13 +186,17 @@ class Project(dict):
                 if error.decode('utf-8').strip():
                     log.error(error)
 
-
-    def locate_sonnet(self, sonnet_path):
+    def locate_sonnet(self, sonnet_path=None):
         """
         Provide the project with the path to the Sonnet folder so that it can be run.
 
         :param sonnet_path: path to the Sonnet program
         """
+        if sonnet_path is None:
+            sonnet_path = pathlib.Path(shutil.which("sonnet")).parent.parent
+            log.debug(f"Found sonnet path at {sonnet_path}")
+        if not sonnet_path:
+            raise ValueError("The sonnet path could not be found. Specify it directly or add it to the PATH.")
         version, license_id = test_sonnet(sonnet_path)
         self['sonnet']['sonnet_path'] = sonnet_path
         log.debug("sonnet path set to '{}'".format(sonnet_path))
