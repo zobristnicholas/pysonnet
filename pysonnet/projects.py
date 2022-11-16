@@ -869,7 +869,6 @@ class GeometryProject(Project):
                 :keyword length: calibration length (float)
             'co-calibrated': a port that is part of a calibration group (string)
                 :keyword fixed_reference_plane: is the reference plane fixed (boolean)
-                :keyword length: calibration length (float)
                 :keyword group_id: co-calibration group id, automatic by default.
                     See add_calibration_group() (string)
         :param number: port number (non-zero integer)
@@ -985,7 +984,7 @@ class GeometryProject(Project):
         if isinstance(terminal_width, str):
             terminal_width_string = b.TERMINAL_WIDTH_TYPES[terminal_width]
         else:
-            terminal_width_string = b.TERMINAL_WIDTH_VALUE.format(terminal_width)
+            terminal_width_string = b.TERMINAL_WIDTH_VALUE.format(value=terminal_width)
 
         self['geometry']['calibration_group'] += b.CALIBRATION_GROUP_FORMAT.format(
             group_id=group_id,
