@@ -710,9 +710,20 @@ class GeometryProject(Project):
             self['geometry']['symmetry'] = 'SYM'
             log.debug("symmetry enabled")
 
-    def define_dielectric_bricks(self):
-        """Defines a dielectric brick that can be used in the project."""
-        raise NotImplementedError
+    def define_dielectric_brick(self, name, epsilon=1, loss_tangent=0, conductivity=0):
+        """
+        Defines a dielectric brick that can be used in the project.
+
+        :param name: unique name of the brick.
+        :param epsilon: the relative dielectric constant
+        :param loss_tangent: the loss tangent of the material
+        :param conductivity: the conductivity of the material
+        """
+        dielectrics = self['geometry']['dielectrics'].splitlines()
+        pattern_id = 2000 + len(dielectrics)
+        self['geometry']['dielectrics'] += b.ISOTROPIC_DIELECTRIC_BRICK_FORMAT.format(
+            name=name, pattern_id=pattern_id, epsilon=epsilon, loss_tangent=loss_tangent, conductivity=conductivity
+        ) + os.linesep
 
     def define_technology_layer(self, layer_type, name, level, material,
                                 fill_type='staircase', edge_mesh=True, **kwargs):
@@ -785,7 +796,16 @@ class GeometryProject(Project):
                     assert material_value in b.VIA_TYPES.values(), \
                         message.format('via', list(b.VIA_TYPES.keys()))
         else:
-            raise NotImplementedError
+            if material == 'air':
+                material_index = 0
+            else:
+                defined_dielectrics = self['geometry']['dielectrics'].splitlines()
+                defined_names = []
+                for defined_dielectric in defined_dielectrics:
+                    defined_names.append(shlex.split(defined_dielectric)[1])
+                # plus 1 because air is included as a default even if it's not defined
+                material_index = np.where(material == np.array(defined_names))[0][0] + 1
+
         # set the level format
         level_format = {"level": level, "n_vertices": 0, "material": material_index,
                         "fill_type": b.FILL_TYPES[fill_type],
@@ -914,7 +934,8 @@ class GeometryProject(Project):
         position = np.array([x, y])
         new_position = position
         for index, polygon in enumerate(polygons):
-            generator = (r for r in polygon.splitlines() if r and not r[0] in ('T', 'E'))
+            # Filter out Techlayer, End, Brick and Via lines
+            generator = (r for r in polygon.splitlines() if r and not r[0] in ('T', 'E', 'B', 'V'))
             polygon = np.genfromtxt(generator, skip_header=1)
             mid_points = (polygon[1:] + polygon[:-1]) / 2
             distance = np.linalg.norm(mid_points - position, axis=1)
@@ -1105,29 +1126,41 @@ class GeometryProject(Project):
                         "y_max": kwargs.pop("y_max", 100),
                         "conformal_max": kwargs.pop("conformal_max", 0),
                         "edge_mesh": "Y" if kwargs.pop("edge_mesh", True) else "N"}
-        name = kwargs.pop("material", "lossless")
+        name = kwargs.pop("material", "lossless" if polygon_type == 'metal' or polygon_type == 'via' else 'air')
         condition = (name == 'lossless' and (polygon_type == 'metal' or
                                              polygon_type == 'via') or
                      name == 'air' and polygon_type == 'dielectric brick')
-        if condition:
-            metal_index = -1
-        else:
-            defined_metals = self['geometry']['metals'].splitlines()[2:]
-            defined_names = []
-            for defined_metal in defined_metals:
-                defined_names.append(shlex.split(defined_metal)[1])
-            metal_index = np.where(name == np.array(defined_names))[0][0]
-            # check that we have a valid material
-            material_value = shlex.split(defined_metals[metal_index])[3]
-            message = ("for a '{}' the 'material' parameter must be one of these "
-                       "types from define_metal() {}")
-            if polygon_type == 'metal':
-                assert material_value in b.METAL_TYPES.values(), \
-                    message.format('metal', list(b.METAL_TYPES.keys()))
+        if polygon_type == 'metal' or polygon_type == 'via':
+            if condition:
+                material_index = -1
             else:
-                assert material_value in b.VIA_TYPES.values(), \
-                    message.format('via', list(b.VIA_TYPES.keys()))
-        level_format['material'] = metal_index
+                defined_metals = self['geometry']['metals'].splitlines()[2:]
+                defined_names = []
+                for defined_metal in defined_metals:
+                    defined_names.append(shlex.split(defined_metal)[1])
+                material_index = np.where(name == np.array(defined_names))[0][0]
+                # check that we have a valid material
+                material_value = shlex.split(defined_metals[material_index])[3]
+                message = ("for a '{}' the 'material' parameter must be one of these "
+                           "types from define_metal() {}")
+                if polygon_type == 'metal':
+                    assert material_value in b.METAL_TYPES.values(), \
+                        message.format('metal', list(b.METAL_TYPES.keys()))
+                else:
+                    assert material_value in b.VIA_TYPES.values(), \
+                        message.format('via', list(b.VIA_TYPES.keys()))
+        else:
+            if condition:
+                material_index = 0
+            else:
+                defined_dielectrics = self['geometry']['dielectrics'].splitlines()
+                defined_names = []
+                for defined_dielectric in defined_dielectrics:
+                    defined_names.append(shlex.split(defined_dielectric)[1])
+                # plus 1 because air is included as a default even if it's not defined
+                print(defined_names, defined_dielectrics, name)
+                material_index = np.where(name == np.array(defined_names))[0][0] + 1
+        level_format['material'] = material_index
         # set up the to_level format for the new polygons
         if polygon_type == 'via':
             message = "'{}' keyword argument is required for via polygons"
