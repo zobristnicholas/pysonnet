@@ -200,6 +200,7 @@ ANALYSIS_TYPES = {"frequency sweep": "STD", "parameter sweep": "VARSWP",
                   "optimization": "OPTIMIZE"}
 OPTION_TYPES = {"current_density": "j", "frequency_cache": "A", "memory_save": "m",
                 "box_resonance": "b", "deembed": "d"}
+SPEED_TYPES = {"high": 0, "medium": 1, "low": 2}
 # optimization block
 OPTIMIZATION = """\
 OPT

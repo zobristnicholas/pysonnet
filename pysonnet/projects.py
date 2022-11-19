@@ -93,7 +93,7 @@ class Project(dict):
 
     def set_options(self, current_density=False, frequency_cache=False,
                     memory_save=False, box_resonance=False, deembed=True,
-                    q_accuracy=False, resonance_detection=False, custom=""):
+                    q_accuracy=False, resonance_detection=False, memory=None, custom=""):
         """
         Set the Sonnet options. Old options are overridden.
 
@@ -104,6 +104,8 @@ class Project(dict):
         :param deembed: deembeds the project ports (boolean)
         :param q_accuracy: accurate line widths for resonators (boolean)
         :param resonance_detection: better resonance detection (boolean)
+        :param memory: use either "high", "medium", or "low" to set the amount
+            of memory used for the mesh. (string)
         :param custom: custom options for sonnet (string)
         """
         # add the main options to a string
@@ -123,6 +125,7 @@ class Project(dict):
         # add other options
         self['control']['q_accuracy'] = "Y" if q_accuracy else "N"
         self['control']['res_detection'] = "Y" if resonance_detection else "N"
+        self['control']['speed'] = b.SPEED_TYPES[memory]
         log.debug("q factor accuracy {}".format("on" if q_accuracy else "off"))
 
     def run(self, analysis_type=None, file_path=None, options='-v',
