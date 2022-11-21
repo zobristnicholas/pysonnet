@@ -723,7 +723,7 @@ class GeometryProject(Project):
         :param conductivity: the conductivity of the material
         """
         dielectrics = self['geometry']['dielectrics'].splitlines()
-        pattern_id = 2000 + len(dielectrics)
+        pattern_id = len(dielectrics) + 1  # first pattern is air which always exists
         self['geometry']['dielectrics'] += b.ISOTROPIC_DIELECTRIC_BRICK_FORMAT.format(
             name=name, pattern_id=pattern_id, epsilon=epsilon, loss_tangent=loss_tangent, conductivity=conductivity
         ) + os.linesep
@@ -958,7 +958,7 @@ class GeometryProject(Project):
         level = polygon[index]
         level = level.split()
         if level[4] not in file_ids:
-            file_id = str(n_ports + 1001)
+            file_id = str(n_ports + 10 * len(polygons))
             level[4] = file_id
             level = " ".join(level)
             polygon[index] = level
