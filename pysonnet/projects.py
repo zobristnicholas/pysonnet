@@ -484,7 +484,7 @@ class GeometryProject(Project):
         assert name != 'lossless', message
         # determine the pattern id and set the location string
         metals = self['geometry']['metals'].splitlines()
-        pattern_id = len(metals) - 2
+        pattern_id = len(metals) - 1
         location = "MET"
         # format the new metal
         if metal_type == 'normal':
