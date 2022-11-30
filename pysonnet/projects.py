@@ -973,7 +973,7 @@ class GeometryProject(Project):
         diagonal_string = b.DIAGONAL_FORMAT.format(allowed="Y" if diagonal else "N")
         if independent:
             fixed_reference_plane = kwargs.pop("fixed_reference_plane", False)
-            reference_type = "NONE" if fixed_reference_plane else "FIX"
+            reference_type = "NONE" if not fixed_reference_plane else "FIX"
             length = kwargs.pop("length", None)
             length_string = 0 if length is None else length
         else:
