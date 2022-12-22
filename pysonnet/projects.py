@@ -41,6 +41,7 @@ class Project(dict):
                 load_path = os.path.join(directory, 'default_configuration.yaml')
             self.load(load_path)
         self.object_ids = []
+        self.port_numbers = []
 
     def make_sonnet_file(self, file_path):
         """
@@ -903,6 +904,8 @@ class GeometryProject(Project):
         :param capacitance: capacitance of the port in Farads (float)
         """
         # check inputs
+        message = f"Port number {number} already exists. Choose a new number"
+        assert number not in self.port_numbers, message
         message = "'port_type' parameter must be one of {}"
         assert port_type in b.PORT_TYPES.keys(), message.format(list(b.PORT_TYPES.keys()))
         message = "'number' parameter can not be 0 and must be an integer"
@@ -989,6 +992,7 @@ class GeometryProject(Project):
                        "file_id": file_id, "polygon_index": min_index,
                        "x": new_position[0], "y": new_position[1]}
         self['geometry']['ports'] += b.PORT_FORMAT.format(**port_format)
+        self.port_numbers.append(number)
         log.debug("{} port {} added at ({}, {}) with parameters ({}, {}, {}, {})"
                   .format(port_type, number, new_position[0], new_position[1], resistance,
                           reactance, inductance, capacitance))
@@ -1017,9 +1021,63 @@ class GeometryProject(Project):
             terminal_width=terminal_width_string
         )
 
-    def add_component(self):
+    def add_component(self, component, value, xy1, xy2, level, label, ground='floating',
+                      terminal_width='feedline'):
         """Adds a component to the project."""
-        raise NotImplementedError
+        object_id = max(self.object_ids) + 1 if self.object_ids else 0
+        self.object_ids.append(object_id)
+        ground_string = b.GROUND_REFERENCE_TYPES[ground]
+        if isinstance(terminal_width, str):
+            terminal_width_string = b.TERMINAL_WIDTH_TYPES[terminal_width]
+        else:
+            terminal_width_string = b.TERMINAL_WIDTH_VALUE.format(value=terminal_width)
+
+        center = (np.array(xy1) + np.array(xy2)) / 2
+        dx = np.abs(xy2[0] - xy1[0])
+        dy = np.abs(xy2[1] - xy1[1])
+        if dx == 0:
+            direction1 = "top" if xy1[1] > xy2[1] else "bottom"
+            direction2 = "bottom" if xy1[1] > xy2[1] else "top"
+            symbol_box = (center[0] - dy / 10, center[0] + dy / 10, center[1] + dy / 3, center[1] - dy / 3)
+        elif dy == 0:
+            direction1 = "left" if xy1[0] < xy2[0] else "right"
+            direction2 = "right" if xy1[0] < xy2[0] else "left"
+            symbol_box = (center[0] - dx / 3, center[0] + dx / 3, center[1] + dx / 10, center[1] - dx / 10)
+        else:
+            direction1 = "diagonal"
+            direction2 = "diagonal"
+            symbol_box = (min(xy1[0], xy2[0]), max(xy1[0], xy2[0]), max(xy1[1], xy2[1]), min(xy1[1], xy2[1]))
+
+        # port numbers aren't displayed so we auto-pick them and start at a large value to avoid conflicts
+        # with future standard ports
+        port1_num = max(max(self.port_numbers) + 1, 1000)
+        self.port_numbers.append(port1_num)
+        port2_num = max(max(self.port_numbers) + 1, 1000)
+        self.port_numbers.append(port2_num)
+
+        self['geometry']['components'] += b.COMPONENT_FORMAT.format(
+            level=level,
+            label=label,
+            object_id=object_id,
+            ground=ground_string,
+            terminal_width=terminal_width_string,
+            symbol_left=symbol_box[0],
+            symbol_right=symbol_box[1],
+            symbol_top=symbol_box[2],
+            symbol_bottom=symbol_box[3],
+            label_x=center[0],
+            label_y=center[1],
+            component_type=b.COMPONENT_TYPES[component],
+            component_value=value,
+            port1_x=xy1[0],
+            port1_y=xy1[1],
+            port1_dir=b.DIRECTION_TYPES[direction1],
+            port1_num=port1_num,
+            port2_x=xy2[0],
+            port2_y=xy2[1],
+            port2_dir=b.DIRECTION_TYPES[direction2],
+            port2_num=port2_num,
+        )
 
     def add_gdstk_cell(self, polygon_type, cell, layer=None, datatype=None,
                        **kwargs):

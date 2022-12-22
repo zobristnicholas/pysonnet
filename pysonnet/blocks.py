@@ -146,6 +146,21 @@ TECHLAY {layer_type} "{name}"  <UNSPECIFIED> -1 0
 END
 END
 """
+COMPONENT_FORMAT = """\
+SMD {level} "{label}"
+ID {object_id}
+GNDREF {ground}
+TWTYPE {terminal_width}
+SBOX {symbol_left} {symbol_right} {symbol_top} {symbol_bottom}
+PBSHW N
+LPOS {label_x} {label_y}
+TYPE IDEAL {component_type} {component_value}
+SMDP {level} {port1_x} {port1_y} {port1_dir} {port1_num} 1
+SMDP {level} {port2_x} {port2_y} {port2_dir} {port2_num} 2
+END
+"""
+COMPONENT_TYPES = {"capacitor": "CAP", "inductor": "IND", "resistor": "RES"}
+DIRECTION_TYPES = {"left": "L", "top": "T", "bottom": "B", "right": "R", "diagonal": "D"}
 POLYGON_FORMAT = """\
 {polygon_type}
 {level}
