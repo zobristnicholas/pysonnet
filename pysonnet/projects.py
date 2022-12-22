@@ -1000,9 +1000,9 @@ class GeometryProject(Project):
     def add_calibration_group(self, group_id, ground='box cover', terminal_width='feedline'):
         """Adds a calibration group to the project.
         :param group_id: Calibration group identifying string
-        :keyword terminal_width: electrical contact width of the terminal
+        :param terminal_width: electrical contact width of the terminal
                     ('feedline', 'cell', or the width number)
-        :keyword ground: how the port is connected to ground
+        :param ground: how the port is connected to ground
             ('floating', 'box cover', or 'polygon plane')
 
         """
@@ -1023,7 +1023,18 @@ class GeometryProject(Project):
 
     def add_component(self, component, value, xy1, xy2, level, label, ground='floating',
                       terminal_width='feedline'):
-        """Adds a component to the project."""
+        """Adds a component to the project.
+        :param component: Component type. Either 'capacitor', 'inductor', or 'resistor'.
+        :param value: Component value as a float. Use the standard units for the project.
+        :param xy1: xy position of the first terminal.
+        :param xy2: xy position of the second terminal.
+        :param level: The component metal level.
+        :param label: The component label.
+        :param ground: how the terminals are connected to ground
+            ('floating', 'box cover', or 'polygon plane')
+        :param terminal_width: electrical contact width of the terminal
+            ('feedline', 'cell', or the width number)
+        """
         object_id = max(self.object_ids) + 1 if self.object_ids else 0
         self.object_ids.append(object_id)
         ground_string = b.GROUND_REFERENCE_TYPES[ground]
