@@ -904,8 +904,6 @@ class GeometryProject(Project):
         :param capacitance: capacitance of the port in Farads (float)
         """
         # check inputs
-        message = f"Port number {number} already exists. Choose a new number"
-        assert number not in self.port_numbers, message
         message = "'port_type' parameter must be one of {}"
         assert port_type in b.PORT_TYPES.keys(), message.format(list(b.PORT_TYPES.keys()))
         message = "'number' parameter can not be 0 and must be an integer"
