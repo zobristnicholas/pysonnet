@@ -22,11 +22,11 @@ class NCoupledLines:
         self.impedance = self.resistance + 1j * 2 * np.pi * self.frequencies * self.inductance
         self.admittance = self.conductance + 1j * 2 * np.pi * self.frequencies * self.capacitance
 
-        # Find eigenvalues of matrix equation and sort
+        # Find the propagation eigenvalues and basis
         propagation_constant_sq, transform = self._eig_sorted(self.admittance @ self.impedance)
 
         self.propagation_basis = transform
-        transform_inv = transform.transpose((0, 2, 1))
+        transform_inv = np.linalg.inv(transform)
 
         self.propagation_constant = np.sqrt(propagation_constant_sq)
 
