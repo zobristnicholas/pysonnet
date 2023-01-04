@@ -5,22 +5,119 @@ import numpy as np
 from matplotlib import colors
 from matplotlib import pyplot as plt
 from scipy.interpolate import interp2d
+from scipy.constants import epsilon_0, mu_0
 
 
-class Sweep:
-    """Class for handling sweep data output from Sonnet"""
-    pass
-
-
-class ResponseData:
+class NCoupledLines:
     """
-    Class for loading in outputs saved with project.add_output_file(). Different formats can be loaded with the
-    "from_" methods.
+    Class for loading in outputs saved with project.add_n_coupled_lines_file().
+    Different formats can be loaded with the "from_" methods.
     """
-    def __init__(self, f, parameter, parameter_type="s"):
+    def __init__(self, frequencies, inductance, resistance, capacitance, conductance):
+        self.frequencies = np.array(frequencies)[:, np.newaxis, np.newaxis]
+        self.inductance = np.array(inductance, ndmin=3)
+        self.resistance = np.array(resistance, ndmin=3)
+        self.capacitance = np.array(capacitance, ndmin=3)
+        self.conductance = np.array(conductance, ndmin=3)
+        self.impedance = self.resistance + 1j * 2 * np.pi * self.frequencies * self.inductance
+        self.admittance = self.conductance + 1j * 2 * np.pi * self.frequencies * self.capacitance
+
+        # Find eigenvalues of matrix equation and sort
+        propagation_constant_sq, transform = self._eig_sorted(self.admittance @ self.impedance)
+
+        self.propagation_basis = transform
+        transform_inv = transform.transpose((0, 2, 1))
+
+        self.propagation_constant = np.sqrt(propagation_constant_sq)
+
+        # Determine characteristic impedance matrix and eigenvalues
+        shape = self.propagation_constant.shape
+        propagation_constant_inv = np.zeros(shape + shape[-1:], dtype=self.propagation_constant.dtype)
+        diagonals = propagation_constant_inv.diagonal(axis1=-2, axis2=-1)
+        diagonals.setflags(write=True)
+        diagonals[:] = 1 / self.propagation_constant  # updates propagation_constant_inv
+        self.characteristic_impedance_matrix = self.impedance @ transform @ propagation_constant_inv @ transform_inv
+
+        self.characteristic_impedance, self.impedance_basis = self._eig_sorted(self.characteristic_impedance_matrix)
+
+        self.effective_relative_permittivity = (
+            self.propagation_constant / (2j * np.pi * self.frequencies[:, :, 0] * np.sqrt(epsilon_0 * mu_0))
+        )**2
+
+    @classmethod
+    def from_spectre(cls, file_name):
+        frequencies = []
+        inductances = []
+        resistances = []
+        capacitances = []
+        conductances = []
+        dim = None
+        with open(file_name) as fid:
+            while True:
+                line = fid.readline()
+
+                # Exit the while loop if we run out of lines.
+                if not line:
+                    break
+                    # raise IOError(f"Improper file format for '{file_name}")
+
+                # Remove the comments, leading or trailing whitespace, and make
+                # everything lowercase.
+                line = line.split(';', 1)[0].strip().lower()
+
+                # Skip the line if it was only comments.
+                if len(line) == 0:
+                    continue
+
+                if line.startswith('format'):
+                    number = line.count(":") - 1  # extra colon for after format
+                    dim = int((np.sqrt(8 * number + 1) - 1) / 2)  # (dim + 1) * dim / 2 elements in upper triangle
+                    for _ in range(3):  # discard next three lines
+                        fid.readline()
+                    continue
+                # If we are here we should be reading the data and have parsed the header info
+                if dim is None:
+                    raise IOError(f"File '{file_name} doesn't have the required format line")
+                f, inductance_line = line.split(":")
+                frequencies.append(float(f))
+                inductances.append(cls._spectre_str_to_matrix(inductance_line, dim))
+                resistances.append(cls._spectre_str_to_matrix(fid.readline(), dim))
+                capacitances.append(cls._spectre_str_to_matrix(fid.readline(), dim))
+                conductances.append(cls._spectre_str_to_matrix(fid.readline(), dim))
+        return cls(frequencies, inductances, resistances, capacitances, conductances)
+
+    @classmethod
+    def from_hspice(cls, file_name):
+        raise NotImplementedError
+
+    @classmethod
+    def _spectre_str_to_matrix(cls, string, dimension):
+        array = np.array(string.split(), dtype=float)
+        matrix = np.empty((dimension, dimension), dtype=float)
+        upper = np.triu_indices(dimension, k=0)
+        matrix[upper] = array
+        lower = np.tril_indices(dimension, k=-1)
+        matrix[lower] = matrix.T[lower]
+        return matrix
+
+    @classmethod
+    def _eig_sorted(cls, matrix):
+        eigenvalues, eigenvectors = np.linalg.eig(matrix)
+        sorted_indices = np.argsort(eigenvalues, axis=-1)  # sort by eigenvalue real part
+        eigenvalues = np.take_along_axis(eigenvalues, sorted_indices, axis=-1)
+        eigenvectors = np.take_along_axis(eigenvectors, sorted_indices[:, np.newaxis, :], axis=-1)
+        return eigenvalues, eigenvectors
+
+
+class SYZParameter:
+    """
+    Class for loading in outputs saved with project.add_syz_parameter_file().
+    Different formats can be loaded with the "from_" methods.
+    """
+    def __init__(self, f, value, value_type="s"):
         self.f = f
-        self.parameter = parameter
-        self.parameter_type = parameter_type
+        self.value = value
+        self.value_type = value_type
 
     @classmethod
     def from_touchstone(cls, file_name):
