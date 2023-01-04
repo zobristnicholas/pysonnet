@@ -1270,11 +1270,16 @@ class GeometryProject(Project):
             self['geometry']['n_polygons'] += 1
             log.debug("polygon added")
 
-    def add_output_file(self, file_type, output_folder=None, deembed=True,
-                        include_abs=True, include_comments=True, high_precision=True,
-                        file_name=None, parameter_type='S', parameter_form='RI'):
+    def add_output_file(self, *args, **kwargs):
+        import warnings
+        warnings.warn("add_output_file() is deprecated. Use add_syz_parameter_file() instead.")
+        self.add_syz_parameter_file(*args, **kwargs)
+
+    def add_syz_parameter_file(self, file_type, output_folder=None, deembed=True,
+                               include_abs=True, include_comments=True, high_precision=True,
+                               file_name=None, parameter_type='S', parameter_form='RI'):
         """
-        Add an output file for the response data from the analysis of the project.
+        Add an output file for the SYZ parameter data from the analysis of the project.
 
         :param file_type: output file type (string)
             Valid options are 'touchstone', 'touchstone2', 'databank', 'scompact',
