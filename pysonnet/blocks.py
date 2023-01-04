@@ -251,6 +251,9 @@ RESPONSE_DATA_FORMAT = ("{file_type} {deembed} {include_abs} {file_name} "
 RESPONSE_DATA_NETLIST_FORMAT = ("{file_type} NET={network} {deembed} {include_abs} "
                                 "{file_name} {include_comments} {precision} "
                                 "{parameter_type} {parameter_form} {ports}")
+N_COUPLED_LINE_FORMAT = "NCLINE {deembed} {include_abs} {file_name} {precision} {file_type}"
+N_COUPLED_LINE_TYPES = {"spectre": "SPECTRE", "spice": "PSPICE"}
+
 # parameter block for netlist project
 PARAMETER_NETLIST = """\
 VAR

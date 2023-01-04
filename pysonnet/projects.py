@@ -1363,6 +1363,40 @@ class GeometryProject(Project):
         self['output_file']['response_data'] += output + os.linesep
         log.debug("{} output file added here '{}'".format(file_type, output_folder))
 
+    def add_n_coupled_lines_file(self, file_type, output_folder=None, deembed=True,
+                                include_abs=True, high_precision=True, file_name=None):
+        """
+        Add an output file for the SYZ parameter data from the analysis of the project.
+
+        :param file_type: output file type (string)
+            Valid options are 'spectre', 'spice'.
+        :param output_folder: relative path to where the data is saved (string)
+            If no folder is chosen, data will be saved in the top level of the project
+            directory. This option can only be set once per Project, and it's value is
+            overwritten if selected again.
+        :param deembed: save the deembeded data, defaults to True (boolean)
+        :param include_abs: include the abs calculated data, defaults to True (boolean)
+        :param high_precision: use high precision numbers, defaults to True (boolean)
+        :param file_name: output data file name, defaults to the sonnet file name (string)
+        """
+        message = "'file_type' parameter must be in {}".format(list(b.N_COUPLED_LINE_TYPES.keys()))
+        assert file_type.lower() in b.N_COUPLED_LINE_TYPES.keys(), message
+        # parse options
+        deembed = 'D' if deembed else 'ND'
+        include_abs = 'Y' if include_abs else 'N'
+        precision = 15 if high_precision else 8
+        if file_name is None:
+            file_name = '$BASENAME.dat'
+
+        output = b.N_COUPLED_LINE_FORMAT.format(file_type=b.N_COUPLED_LINE_TYPES[file_type.lower()],
+                                                deembed=deembed,
+                                                include_abs=include_abs,
+                                                file_name=file_name,
+                                                precision=precision)
+        # add the output file to the project
+        self['output_file']['n_coupled_line_spice'] += output + os.linesep
+        log.debug("{} output file added here '{}'".format(file_type, output_folder))
+
 
 class NetlistProject(Project):
     """
