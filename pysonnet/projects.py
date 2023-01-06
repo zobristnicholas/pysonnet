@@ -1057,11 +1057,9 @@ class GeometryProject(Project):
             direction2 = "diagonal"
             symbol_box = (min(xy1[0], xy2[0]), max(xy1[0], xy2[0]), max(xy1[1], xy2[1]), min(xy1[1], xy2[1]))
 
-        # port numbers aren't displayed so we auto-pick them and start at a large value to avoid conflicts
-        # with future standard ports
-        port1_num = max(max(self.port_numbers) + 1, 1000)
+        port1_num = max(self.port_numbers) + 1
         self.port_numbers.append(port1_num)
-        port2_num = max(max(self.port_numbers) + 1, 1000)
+        port2_num = max(self.port_numbers) + 1
         self.port_numbers.append(port2_num)
 
         self['geometry']['components'] += b.COMPONENT_FORMAT.format(
