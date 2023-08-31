@@ -15,7 +15,7 @@ from pysonnet.sonnet import test_sonnet
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 
 
 class Project(dict):
