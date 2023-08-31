@@ -871,7 +871,7 @@ class GeometryProject(Project):
                   .format(dx, dy, " not" if not locked else ""))
 
     def add_port(self, port_type, number, x, y, resistance=0,
-                 reactance=0, inductance=0, capacitance=0, **kwargs):
+                 reactance=0, inductance=0, capacitance=0, level=None, **kwargs):
         """
         Adds a port to the project.
 
@@ -902,6 +902,8 @@ class GeometryProject(Project):
         :param reactance: reactance of the port in Ohms (float)
         :param inductance: inductance of the port in Henries (float)
         :param capacitance: capacitance of the port in Farads (float)
+        :param level: level of the layer to add the port to. The layer can be an integer or a
+            tech layer name. If None, all layers are searched for the correct polygon (integer, str)
         """
         # check inputs
         message = "'port_type' parameter must be one of {}"
@@ -938,6 +940,22 @@ class GeometryProject(Project):
         position = np.array([x, y])
         new_position = position
         for index, polygon in enumerate(polygons):
+            # Check polygon if in right level
+            if isinstance(level, int):
+                if int(polygon.splitlines()[1].split(" ")[0]) != level:
+                    continue
+            elif isinstance(level, str):
+                identifier = b.TECHLAYER_NAME_FORMAT.split(" ")[0]
+                line = None
+                for polygon_line in polygon.splitlines():
+                    if identifier in polygon_line:
+                        line = polygon_line
+                if line is None or line.split(" ")[1].strip('"') != level:
+                    continue
+            else:
+                if level is not None:
+                    raise ValueError("'level' keyword argument must be an integer or string.")
+
             # Filter out Techlayer, End, Brick and Via lines
             generator = (r for r in polygon.splitlines() if r and not r[0] in ('T', 'E', 'B', 'V'))
             polygon = np.genfromtxt(generator, skip_header=1)
