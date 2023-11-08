@@ -126,7 +126,7 @@ class SYZParameter:
         extension = pathlib.Path(file_name).suffix
         if (extension[1] == 's') and (extension[-1] == 'p'):  # sNp
             try:
-                n_ports = int(extension[1:-1])
+                n_ports = int(extension[2:-1])
             except ValueError:
                 message = ("The file name does not have a s-parameter extension. "
                            f"It is [{extension}] instead. Please, correct the "
