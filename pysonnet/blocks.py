@@ -105,6 +105,8 @@ NUM {n_polygons}
 {polygons}
 END GEO
 """
+REFERENCE_PLANES_FORMAT = "DRP1 {position} {plane_type} {length}"
+REFERENCE_PLANE_TYPES = {"fixed": "FIX", "FIX": "FIX", "linked": "LINK", "LINK": "LINK"}
 COVER_TYPES = {'normal': "NOR", 'resistor': "RES", 'native': "NAT", 'general': "SUP",
                'sense': "SEN"}
 VIA_TYPES = {'volume loss': "VOL", 'surface loss': "SFC", 'array loss': "ARR"}
@@ -277,9 +279,11 @@ MAIN {netlist_name}
 {subdivider_locations}
 END SUBDIV
 """
-REFERENCE_PLANES_FORMAT = "DRP1 {position} {plane_type} {length}"
-REFERENCE_PLANE_TYPES = {"fixed": "FIX", "FIX": "FIX", "linked": "LINK", "LINK": "LINK"}
-
+SUB_REFERENCE_PLANES_FORMAT = "REFPLANE {plane_type} {length}"
+SUB_REFERENCE_PLANE_TYPES = {"auto": "A", "fixed": "F", "none": "N"}
+SUB_NAME_FORMAT = "NAME {index} $BASENAME_net_s{index}.son \n"
+SUB_LOC_FORMAT = "LINE {index} {position} {direction} \n"
+SUB_DIRECTION_TYPES = {"horizontal": "H", "vertical": "V"}
 
 # quick start guide block for a geometry project
 QUICK_START_GUIDE = """\

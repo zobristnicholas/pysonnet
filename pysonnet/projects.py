@@ -855,6 +855,33 @@ class GeometryProject(Project):
         """Adds an edge via to the project."""
         raise NotImplementedError
 
+    def add_subdivider(self, position, direction='vertical', reference_plane=None):
+        """Adds a subdivider to the project. All subdividers must have the same orientation.
+
+        :param position: Either x or y position of the subdivider
+        :param direction: Either 'vertical' or 'horizontal'. Sets the subdivider's orientation.
+        :param reference_plane: Either 'auto', 'none', or a length that sets the reference plane of
+            the subcircuits. This globally sets the value for all subdivisions.
+        """
+        index = len(self['subdivider']['subdivider_locations'].split("\n"))
+        if len(self['subdivider']['geometry_names'].split("\n")) == index:
+            self['subdivider']['geometry_names'] += b.SUB_NAME_FORMAT.format(index=index)
+        self['subdivider']['geometry_names'] += b.SUB_NAME_FORMAT.format(index=index + 1)
+        self['subdivider']['subdivider_locations'] += b.SUB_LOC_FORMAT.format(
+            index=index, position=position, direction=b.SUB_DIRECTION_TYPES[direction]
+        )
+        if reference_plane is not None:
+            if isinstance(reference_plane, str):
+                plane_type = b.SUB_REFERENCE_PLANE_TYPES[reference_plane]
+                length = 0
+            else:
+                plane_type = b.SUB_REFERENCE_PLANE_TYPES["fixed"]
+                length = reference_plane
+            self['subdivider']['reference_planes'] = b.SUB_REFERENCE_PLANES_FORMAT.format(
+                plane_type=plane_type,
+                length=length,
+            )
+
     def set_origin(self, dx, dy, locked=True):
         """
         Sets the origin for the project.

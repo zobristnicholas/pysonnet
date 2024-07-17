@@ -76,7 +76,7 @@ circuit:
   circuit_elements: ''
 subdivider:
   netlist_name: '$BASENAME_net.son'
-  reference_planes: ''
+  reference_planes: 'REFPLANE A 0'
   geometry_names: ''
   subdivider_locations: ''
 quick_start_guide:
